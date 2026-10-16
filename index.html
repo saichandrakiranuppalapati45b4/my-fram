@@ -1137,6 +1137,7 @@ let fishTimer=0;
    ============================================================ */
 const raycaster=new THREE.Raycaster();
 const pointer=new THREE.Vector2();
+const pointerDown=new THREE.Vector2();
 let pointerDownBtn=-1;
 
 renderer.domElement.addEventListener('pointerdown',e=>{pointerDown.set(e.clientX,e.clientY);pointerDownBtn=e.button;});

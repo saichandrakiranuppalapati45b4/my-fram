@@ -170,6 +170,19 @@ class AquaFarmFirebase {
   attachRealtimeListeners() {
     if (!this.db) return;
 
+    let hasWarnedPermission = false;
+    const handlePermissionError = (err, collName) => {
+      if (err.code === 'permission-denied' || (err.message && err.message.includes('permissions'))) {
+        if (!hasWarnedPermission) {
+          hasWarnedPermission = true;
+          this.updateStatus(false, "Rules Required (Firebase Console > Rules)");
+          console.warn("[AquaFarm Firebase] Firestore Security Rules are locked. Please publish rules in Firebase Console > Firestore Database > Rules.");
+        }
+      } else {
+        console.warn(`Firestore ${collName} snapshot error:`, err.message);
+      }
+    };
+
     // 1. Listen to Ponds Collection
     const pondsRef = collection(this.db, "ponds");
     const unsubPonds = onSnapshot(pondsRef, (snapshot) => {
@@ -179,7 +192,7 @@ class AquaFarmFirebase {
         this.callbacks.onPondsUpdate(ponds);
       }
     }, (error) => {
-      console.warn("Firestore Ponds snapshot error:", error.message);
+      handlePermissionError(error, "Ponds");
     });
     this.unsubscribers.push(unsubPonds);
 
@@ -190,7 +203,7 @@ class AquaFarmFirebase {
         this.callbacks.onMetricsUpdate(snapshot.data());
       }
     }, (error) => {
-      console.warn("Firestore Metrics snapshot error:", error.message);
+      handlePermissionError(error, "Metrics");
     });
     this.unsubscribers.push(unsubMetrics);
 
@@ -203,7 +216,7 @@ class AquaFarmFirebase {
         this.callbacks.onAlertsUpdate(alerts);
       }
     }, (error) => {
-      console.warn("Firestore Alerts snapshot error:", error.message);
+      handlePermissionError(error, "Alerts");
     });
     this.unsubscribers.push(unsubAlerts);
 
@@ -214,7 +227,7 @@ class AquaFarmFirebase {
         this.callbacks.onWeatherUpdate(snapshot.data());
       }
     }, (error) => {
-      console.warn("Firestore Weather snapshot error:", error.message);
+      handlePermissionError(error, "Weather");
     });
     this.unsubscribers.push(unsubWeather);
   }
