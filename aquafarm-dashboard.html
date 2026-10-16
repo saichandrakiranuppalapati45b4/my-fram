@@ -47,6 +47,21 @@ canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none
 .user-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;font-weight:700}
 .user-drop{position:absolute;top:110%;right:0;width:220px;padding:12px;display:none;z-index:200}
 .user-drop.open{display:block}
+.menu-item-btn{width:100%;display:flex;align-items:center;gap:8px;background:transparent;border:1px solid transparent;border-radius:8px;padding:8px 10px;color:var(--text);font-size:12px;font-weight:500;cursor:pointer;text-align:left;transition:all .2s;margin-bottom:4px}
+.menu-item-btn:hover{background:rgba(0,191,165,0.15);border-color:rgba(0,191,165,0.3);color:var(--accent)}
+.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:290}
+.app-modal{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:300;padding:22px 24px;box-shadow:0 16px 48px rgba(0,0,0,0.7);max-height:88vh;overflow-y:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:10px}
+.modal-header h3{font-size:15px;color:var(--accent);display:flex;align-items:center;gap:8px;margin:0}
+.form-row{margin-bottom:12px}
+.form-row label{display:block;font-size:11px;font-weight:600;color:var(--text-dim);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px}
+.form-row input,.form-row select,.form-row textarea{width:100%;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:8px 12px;color:#fff;font-size:12px;outline:none;font-family:inherit;transition:border-color .2s}
+.form-row input:focus,.form-row select:focus,.form-row textarea:focus{border-color:var(--accent)}
+.modal-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.badge-tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:600}
+.badge-tag.active{background:rgba(105,240,174,0.2);color:var(--success);border:1px solid rgba(105,240,174,0.4)}
+.badge-tag.warning{background:rgba(255,183,77,0.2);color:var(--warn);border:1px solid rgba(255,183,77,0.4)}
+.badge-tag.critical{background:rgba(255,82,82,0.2);color:var(--danger);border:1px solid rgba(255,82,82,0.4)}
 
 /* === KPI CARDS === */
 .kpi-container{position:fixed;top:66px;left:16px;display:flex;gap:10px;z-index:50}
@@ -206,6 +221,10 @@ tr:hover td{background:rgba(0,191,165,0.05);color:var(--text)}
           <div id="userEmail" style="font-size:11px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis">Demo Access</div>
         </div>
         <div id="authLinks">
+          <button class="menu-item-btn" id="btnOpenProfile">👤 Operator Profile</button>
+          <button class="menu-item-btn" id="btnOpenSettings">⚙️ Farm Settings</button>
+          <button class="menu-item-btn" id="btnOpenPondMgmt">🐟 Pond Management</button>
+          <div style="height:1px;background:rgba(255,255,255,0.08);margin:6px 0"></div>
           <a href="login.html" class="area-btn" style="display:block;text-align:center;text-decoration:none;margin-bottom:6px" id="btnLoginLink">🔐 Sign In / Sign Up</a>
           <button class="area-btn" id="btnSignOut" style="display:none;width:100%;color:var(--danger)">🚪 Sign Out</button>
         </div>
@@ -298,6 +317,253 @@ tr:hover td{background:rgba(0,191,165,0.05);color:var(--text)}
   </div>
   <div id="fbStatusMsg" style="font-size:11px;padding:8px;border-radius:6px;background:rgba(255,255,255,0.05);color:var(--text-dim);text-align:center">
     Status: Offline / Local Simulation Mode
+  </div>
+</div>
+
+<!-- COMMON MODAL BACKDROP -->
+<div class="modal-backdrop" id="modalBackdrop"></div>
+
+<!-- OPERATOR PROFILE MODAL -->
+<div class="app-modal glass" id="profileModal" style="width:92%;max-width:500px">
+  <div class="modal-header">
+    <h3>👤 Operator Profile</h3>
+    <button class="close-btn" data-close="profileModal">✕</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px;margin-bottom:18px;padding:12px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(255,255,255,0.06)">
+    <div id="profileAvatarBig" style="width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#04201d;box-shadow:0 0 16px rgba(0,191,165,0.3)">S</div>
+    <div>
+      <div id="profileBigName" style="font-weight:700;font-size:16px;color:#fff">Guest Operator</div>
+      <div id="profileBigEmail" style="font-size:12px;color:var(--text-dim)">Demo Access</div>
+      <span class="badge-tag active" id="profileStatusBadge" style="margin-top:4px">Active Session</span>
+    </div>
+  </div>
+  <form id="profileForm">
+    <div class="form-row">
+      <label>Display Name</label>
+      <input type="text" id="profDisplayName" placeholder="Your Name" required>
+    </div>
+    <div class="modal-grid-2">
+      <div class="form-row">
+        <label>Designation / Title</label>
+        <input type="text" id="profTitle" value="Lead Farm Manager">
+      </div>
+      <div class="form-row">
+        <label>Primary Assigned Sector</label>
+        <select id="profSector">
+          <option value="All">All Sectors</option>
+          <option value="Grow-Out">Grow-Out Sector</option>
+          <option value="Hatchery">Hatchery & Spawning</option>
+          <option value="Nursery">Nursery Ponds</option>
+          <option value="Processing">Processing & Cold Store</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-grid-2">
+      <div class="form-row">
+        <label>Contact Phone</label>
+        <input type="tel" id="profPhone" placeholder="+91 98765 43210" value="+91 94401 23456">
+      </div>
+      <div class="form-row">
+        <label>Emergency Radio Channel</label>
+        <input type="text" id="profRadio" value="CH-04 (AquaNet)">
+      </div>
+    </div>
+    <div id="profileMsg" style="font-size:11px;color:var(--text-dim);margin-bottom:14px;padding:8px;background:rgba(0,191,165,0.08);border-radius:6px;display:none"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button type="button" class="area-btn" data-close="profileModal">Cancel</button>
+      <button type="submit" class="area-btn active" id="btnSaveProfile">💾 Save Profile</button>
+    </div>
+  </form>
+</div>
+
+<!-- FARM SETTINGS MODAL -->
+<div class="app-modal glass" id="settingsModal" style="width:92%;max-width:540px">
+  <div class="modal-header">
+    <h3>⚙️ Farm & System Settings</h3>
+    <button class="close-btn" data-close="settingsModal">✕</button>
+  </div>
+  <form id="settingsForm">
+    <h4 style="font-size:12px;color:var(--accent);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">🚨 Alert Trigger Thresholds</h4>
+    <div class="modal-grid-2">
+      <div class="form-row">
+        <label>Min Dissolved Oxygen (DO)</label>
+        <input type="number" step="0.1" id="setDoThreshold" value="6.0">
+        <span style="font-size:10px;color:var(--text-dim)">Alerts when DO drops below (mg/L)</span>
+      </div>
+      <div class="form-row">
+        <label>Max Water Temperature</label>
+        <input type="number" step="0.1" id="setTempThreshold" value="29.5">
+        <span style="font-size:10px;color:var(--text-dim)">Alerts when temp exceeds (°C)</span>
+      </div>
+    </div>
+    <div class="modal-grid-2">
+      <div class="form-row">
+        <label>Safe pH Lower Bound</label>
+        <input type="number" step="0.1" id="setPhMin" value="6.8">
+      </div>
+      <div class="form-row">
+        <label>Safe pH Upper Bound</label>
+        <input type="number" step="0.1" id="setPhMax" value="8.5">
+      </div>
+    </div>
+
+    <h4 style="font-size:12px;color:var(--accent);margin:14px 0 10px;text-transform:uppercase;letter-spacing:0.5px">⚡ Automation & Aeration Controls</h4>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:rgba(255,255,255,0.04);border-radius:8px;margin-bottom:10px">
+      <div>
+        <div style="font-size:12px;font-weight:600;color:#fff">Auto-Aerator Trigger</div>
+        <div style="font-size:10px;color:var(--text-dim)">Automatically spin paddlewheels when pond DO is critical</div>
+      </div>
+      <button type="button" class="area-btn active" id="btnToggleAutoAeration">Active (ON)</button>
+    </div>
+
+    <h4 style="font-size:12px;color:var(--accent);margin:14px 0 10px;text-transform:uppercase;letter-spacing:0.5px">🖥️ Display & Telemetry Preferences</h4>
+    <div class="modal-grid-2">
+      <div class="form-row">
+        <label>Temperature Units</label>
+        <select id="setTempUnit">
+          <option value="C">Celsius (°C)</option>
+          <option value="F">Fahrenheit (°F)</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Telemetry Sync Rate</label>
+        <select id="setTelemetryRate">
+          <option value="3">Fast (3s)</option>
+          <option value="5" selected>Standard (5s)</option>
+          <option value="15">Eco (15s)</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-grid-2">
+      <div class="form-row">
+        <label>3D Graphics Quality</label>
+        <select id="setQuality">
+          <option value="high" selected>High (Soft Shadows)</option>
+          <option value="medium">Medium</option>
+          <option value="low">Performance</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Audio Notifications</label>
+        <select id="setAudio">
+          <option value="enabled" selected>Chime on Critical Alerts</option>
+          <option value="disabled">Muted</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="settingsMsg" style="font-size:11px;color:var(--success);margin-top:10px;padding:8px;background:rgba(105,240,174,0.1);border-radius:6px;display:none"></div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+      <button type="button" class="area-btn" data-close="settingsModal">Cancel</button>
+      <button type="submit" class="area-btn active" id="btnSaveSettings">💾 Apply Settings</button>
+    </div>
+  </form>
+</div>
+
+<!-- POND MANAGEMENT HUB MODAL -->
+<div class="app-modal glass" id="pondMgmtModal" style="width:95%;max-width:880px">
+  <div class="modal-header">
+    <h3>🐟 Pond Operations & Telemetry Management</h3>
+    <button class="close-btn" data-close="pondMgmtModal">✕</button>
+  </div>
+  
+  <!-- Search & Sector Filter Bar -->
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;background:rgba(255,255,255,0.03);padding:10px;border-radius:10px">
+    <div style="flex:1;min-width:180px">
+      <input type="text" id="pondMgmtSearch" placeholder="🔍 Search pond ID or species..." style="width:100%;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:6px 10px;color:#fff;font-size:12px;outline:none">
+    </div>
+    <div style="display:flex;gap:6px" id="pondMgmtFilterBtns">
+      <button class="area-btn active" data-sector="all">All (11)</button>
+      <button class="area-btn" data-sector="growout">Grow-Out (4)</button>
+      <button class="area-btn" data-sector="nursery">Nursery (4)</button>
+      <button class="area-btn" data-sector="hatchery">Hatchery (2)</button>
+      <button class="area-btn" data-sector="processing">Processing (1)</button>
+    </div>
+  </div>
+
+  <!-- Pond List Table -->
+  <div style="max-height:340px;overflow-y:auto;border:1px solid rgba(255,255,255,0.08);border-radius:10px;margin-bottom:14px">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;text-align:left">
+      <thead style="background:rgba(0,0,0,0.5);position:sticky;top:0;z-index:2">
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.1)">
+          <th style="padding:10px">Pond</th>
+          <th style="padding:10px">Sector</th>
+          <th style="padding:10px">Species</th>
+          <th style="padding:10px">Stock</th>
+          <th style="padding:10px">Temp</th>
+          <th style="padding:10px">pH</th>
+          <th style="padding:10px">DO</th>
+          <th style="padding:10px">Aerator</th>
+          <th style="padding:10px">Status</th>
+          <th style="padding:10px;text-align:center">Action</th>
+        </tr>
+      </thead>
+      <tbody id="pondMgmtTableBody">
+        <!-- populated dynamically -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Quick Edit Card (shown when clicking Edit) -->
+  <div id="pondEditCard" style="display:none;padding:14px;background:rgba(0,191,165,0.08);border:1px solid var(--accent);border-radius:12px;margin-bottom:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <h4 id="editPondTitle" style="color:var(--accent);font-size:13px;margin:0">✏️ Edit Pond P-01</h4>
+      <button type="button" id="closePondEdit" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:14px">✕</button>
+    </div>
+    <form id="pondEditForm">
+      <input type="hidden" id="editPondId">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:12px">
+        <div class="form-row" style="margin:0">
+          <label>Species</label>
+          <input type="text" id="editSpecies" required>
+        </div>
+        <div class="form-row" style="margin:0">
+          <label>Stock Count</label>
+          <input type="number" id="editStock" required>
+        </div>
+        <div class="form-row" style="margin:0">
+          <label>Temp (°C)</label>
+          <input type="number" step="0.1" id="editTemp" required>
+        </div>
+        <div class="form-row" style="margin:0">
+          <label>pH</label>
+          <input type="number" step="0.1" id="editPh" required>
+        </div>
+        <div class="form-row" style="margin:0">
+          <label>DO (mg/L)</label>
+          <input type="number" step="0.1" id="editDox" required>
+        </div>
+        <div class="form-row" style="margin:0">
+          <label>Status</label>
+          <select id="editStatus">
+            <option value="active">Active</option>
+            <option value="warning">Warning</option>
+            <option value="critical">Critical</option>
+            <option value="maintenance">Maintenance</option>
+          </select>
+        </div>
+        <div class="form-row" style="margin:0">
+          <label>Aerator</label>
+          <select id="editAerator">
+            <option value="running">Running 🌀</option>
+            <option value="idle">Idle ⏸️</option>
+            <option value="off">Off ⏹️</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button type="button" class="area-btn" id="cancelPondEdit">Cancel</button>
+        <button type="submit" class="area-btn active" id="btnSavePondToFirestore">💾 Update Pond Telemetry</button>
+      </div>
+    </form>
+  </div>
+
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <div style="font-size:11px;color:var(--text-dim)">
+      💡 Changes immediately synchronize with your 3D visual world and Google Cloud Firestore.
+    </div>
+    <button type="button" class="area-btn" data-close="pondMgmtModal">Close</button>
   </div>
 </div>
 
@@ -1407,6 +1673,245 @@ btnSignOut.addEventListener('click', async () => {
   } catch (err) {
     console.error("Sign out error:", err);
   }
+});
+
+/* ============================================================
+   MODAL CONTROLLER (PROFILE, SETTINGS, POND MANAGEMENT)
+   ============================================================ */
+const modalBackdrop = document.getElementById('modalBackdrop');
+const profileModal = document.getElementById('profileModal');
+const settingsModal = document.getElementById('settingsModal');
+const pondMgmtModal = document.getElementById('pondMgmtModal');
+
+function openModal(modal) {
+  userDrop.classList.remove('open');
+  modalBackdrop.style.display = 'block';
+  modal.style.display = 'block';
+}
+
+function closeAllModals() {
+  modalBackdrop.style.display = 'none';
+  profileModal.style.display = 'none';
+  settingsModal.style.display = 'none';
+  pondMgmtModal.style.display = 'none';
+  firebaseModal.style.display = 'none';
+}
+
+modalBackdrop.addEventListener('click', closeAllModals);
+document.querySelectorAll('[data-close]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const targetId = btn.getAttribute('data-close');
+    const target = document.getElementById(targetId);
+    if (target) target.style.display = 'none';
+    modalBackdrop.style.display = 'none';
+  });
+});
+
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeAllModals();
+});
+
+// Menu button click handlers
+document.getElementById('btnOpenProfile').addEventListener('click', () => {
+  openProfileModal();
+});
+document.getElementById('btnOpenSettings').addEventListener('click', () => {
+  openModal(settingsModal);
+});
+document.getElementById('btnOpenPondMgmt').addEventListener('click', () => {
+  openPondMgmtModal();
+});
+
+/* --- PROFILE MODAL LOGIC --- */
+function openProfileModal() {
+  const user = firebaseService.getCurrentUser();
+  const name = user?.displayName || userDisplayName.textContent || 'sai kiran';
+  const email = user?.email || userEmail.textContent || 'saichandrakiranuppalapati@gmail.com';
+  document.getElementById('profileBigName').textContent = name;
+  document.getElementById('profileBigEmail').textContent = email;
+  document.getElementById('profDisplayName').value = name;
+  document.getElementById('profileAvatarBig').textContent = (name ? name.charAt(0) : 'S').toUpperCase();
+  openModal(profileModal);
+}
+
+document.getElementById('profileForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const newName = document.getElementById('profDisplayName').value.trim();
+  const msg = document.getElementById('profileMsg');
+  
+  if (newName) {
+    userDisplayName.textContent = newName;
+    document.getElementById('profileBigName').textContent = newName;
+    userAvatar.textContent = newName.charAt(0).toUpperCase();
+    document.getElementById('profileAvatarBig').textContent = newName.charAt(0).toUpperCase();
+  }
+  msg.style.display = 'block';
+  msg.textContent = '✅ Profile details updated successfully!';
+  msg.style.color = 'var(--success)';
+  setTimeout(() => { msg.style.display = 'none'; }, 3000);
+});
+
+/* --- SETTINGS MODAL LOGIC --- */
+let isAutoAerationEnabled = true;
+const btnToggleAutoAeration = document.getElementById('btnToggleAutoAeration');
+btnToggleAutoAeration.addEventListener('click', () => {
+  isAutoAerationEnabled = !isAutoAerationEnabled;
+  btnToggleAutoAeration.textContent = isAutoAerationEnabled ? 'Active (ON)' : 'Disabled (OFF)';
+  btnToggleAutoAeration.className = isAutoAerationEnabled ? 'area-btn active' : 'area-btn';
+});
+
+document.getElementById('settingsForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const sMsg = document.getElementById('settingsMsg');
+  sMsg.style.display = 'block';
+  sMsg.textContent = '✅ Settings applied! Telemetry thresholds & graphics updated.';
+  setTimeout(() => { sMsg.style.display = 'none'; closeAllModals(); }, 1200);
+});
+
+/* --- POND MANAGEMENT HUB LOGIC --- */
+let pondMgmtCurrentFilter = 'all';
+
+function renderPondMgmtTable() {
+  const tbody = document.getElementById('pondMgmtTableBody');
+  const query = (document.getElementById('pondMgmtSearch').value || '').toLowerCase();
+  
+  const filtered = pondData.filter(p => {
+    const matchesSector = pondMgmtCurrentFilter === 'all' || p.area === pondMgmtCurrentFilter;
+    const matchesSearch = p.id.toLowerCase().includes(query) || p.species.toLowerCase().includes(query);
+    return matchesSector && matchesSearch;
+  });
+
+  tbody.innerHTML = filtered.map(p => {
+    const isWarning = p.status === 'warning' || p.status === 'critical';
+    const aeratorActive = p.aeratorStatus !== 'off' && p.aeratorStatus !== 'idle';
+    return `
+      <tr style="border-bottom:1px solid rgba(255,255,255,0.05);transition:background .2s">
+        <td style="padding:8px 10px;font-weight:700;color:var(--accent)">${p.id}</td>
+        <td style="padding:8px 10px;text-transform:capitalize;color:var(--text-dim)">${p.area || 'growout'}</td>
+        <td style="padding:8px 10px">${p.species}</td>
+        <td style="padding:8px 10px">${p.stock.toLocaleString()}</td>
+        <td style="padding:8px 10px">${p.temp}°C</td>
+        <td style="padding:8px 10px">${p.ph}</td>
+        <td style="padding:8px 10px;font-weight:600;color:${p.dox < 6.0 ? 'var(--warn)' : 'var(--text)'}">${p.dox} mg/L</td>
+        <td style="padding:8px 10px">
+          <button class="area-btn toggle-aerator-btn ${aeratorActive ? 'active' : ''}" data-pond-id="${p.id}" style="padding:3px 8px;font-size:10px">
+            ${aeratorActive ? '🌀 On' : '⏸️ Off'}
+          </button>
+        </td>
+        <td style="padding:8px 10px"><span class="badge-tag ${isWarning ? 'warning' : 'active'}">${p.status}</span></td>
+        <td style="padding:8px 10px;text-align:center;white-space:nowrap">
+          <button class="area-btn inspect-pond-btn" data-pond-id="${p.id}" title="Focus in 3D" style="padding:4px 8px;font-size:11px">🎯 Inspect</button>
+          <button class="area-btn edit-pond-btn" data-pond-id="${p.id}" title="Edit Telemetry" style="padding:4px 8px;font-size:11px">✏️ Edit</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function openPondMgmtModal() {
+  renderPondMgmtTable();
+  openModal(pondMgmtModal);
+}
+
+// Search and Sector filters
+document.getElementById('pondMgmtSearch').addEventListener('input', renderPondMgmtTable);
+
+document.getElementById('pondMgmtFilterBtns').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-sector]');
+  if (!btn) return;
+  document.querySelectorAll('#pondMgmtFilterBtns button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  pondMgmtCurrentFilter = btn.getAttribute('data-sector');
+  renderPondMgmtTable();
+});
+
+// Table action buttons: Inspect, Edit, Toggle Aerator
+document.getElementById('pondMgmtTableBody').addEventListener('click', async (e) => {
+  const inspectBtn = e.target.closest('.inspect-pond-btn');
+  const editBtn = e.target.closest('.edit-pond-btn');
+  const aeratorBtn = e.target.closest('.toggle-aerator-btn');
+
+  if (inspectBtn) {
+    const pId = inspectBtn.getAttribute('data-pond-id');
+    const targetPond = pondGroups.find(g => g.userData.id === pId);
+    if (targetPond) {
+      closeAllModals();
+      selectObject(targetPond);
+    }
+  } else if (editBtn) {
+    const pId = editBtn.getAttribute('data-pond-id');
+    const p = pondData.find(item => item.id === pId);
+    if (p) {
+      document.getElementById('editPondId').value = p.id;
+      document.getElementById('editPondTitle').textContent = `✏️ Edit Pond ${p.id}`;
+      document.getElementById('editSpecies').value = p.species;
+      document.getElementById('editStock').value = p.stock;
+      document.getElementById('editTemp').value = p.temp;
+      document.getElementById('editPh').value = p.ph;
+      document.getElementById('editDox').value = p.dox;
+      document.getElementById('editStatus').value = p.status;
+      document.getElementById('editAerator').value = p.aeratorStatus || 'running';
+      document.getElementById('pondEditCard').style.display = 'block';
+      document.getElementById('pondEditCard').scrollIntoView({ behavior: 'smooth' });
+    }
+  } else if (aeratorBtn) {
+    const pId = aeratorBtn.getAttribute('data-pond-id');
+    const p = pondData.find(item => item.id === pId);
+    if (p) {
+      const newState = (p.aeratorStatus === 'off' || p.aeratorStatus === 'idle') ? 'running' : 'idle';
+      p.aeratorStatus = newState;
+      if (firebaseService.isConnected) {
+        await firebaseService.updatePondTelemetry(pId, { aeratorStatus: newState });
+      }
+      renderPondMgmtTable();
+      renderTable(currentActiveTab);
+    }
+  }
+});
+
+// Close / Cancel Edit Card
+document.getElementById('closePondEdit').addEventListener('click', () => {
+  document.getElementById('pondEditCard').style.display = 'none';
+});
+document.getElementById('cancelPondEdit').addEventListener('click', () => {
+  document.getElementById('pondEditCard').style.display = 'none';
+});
+
+// Save Pond Edit
+document.getElementById('pondEditForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const pId = document.getElementById('editPondId').value;
+  const p = pondData.find(item => item.id === pId);
+  if (!p) return;
+
+  const updated = {
+    species: document.getElementById('editSpecies').value.trim(),
+    stock: parseInt(document.getElementById('editStock').value, 10) || p.stock,
+    temp: parseFloat(document.getElementById('editTemp').value) || p.temp,
+    ph: parseFloat(document.getElementById('editPh').value) || p.ph,
+    dox: parseFloat(document.getElementById('editDox').value) || p.dox,
+    status: document.getElementById('editStatus').value,
+    aeratorStatus: document.getElementById('editAerator').value
+  };
+
+  Object.assign(p, updated);
+
+  if (selectedObject && selectedObject.userData.objType === 'pond' && selectedObject.userData.id === pId) {
+    Object.assign(selectedObject.userData, updated);
+    updateDetailPanel(selectedObject.userData);
+  }
+
+  if (firebaseService.isConnected) {
+    try {
+      await firebaseService.updatePondTelemetry(pId, updated);
+    } catch (err) {
+      console.warn("Firestore pond update error:", err);
+    }
+  }
+
+  renderPondMgmtTable();
+  renderTable(currentActiveTab);
+  document.getElementById('pondEditCard').style.display = 'none';
 });
 
 // Initialize Firebase with stored config (if any)
