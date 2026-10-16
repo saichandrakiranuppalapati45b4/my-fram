@@ -186,6 +186,35 @@ canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none
   .area-btns{display:none}
   .search-box{display:none}
 }
+
+/* === QUICK ZOOM CONTROLS === */
+.canvas-zoom-controls{position:fixed;bottom:275px;right:340px;z-index:45;display:flex;flex-direction:column;gap:8px;transition:right .3s cubic-bezier(0.16,1,0.3,1)}
+.right-panel.hidden ~ .canvas-zoom-controls,
+body.panel-collapsed .canvas-zoom-controls{right:20px}
+.zoom-fab{width:36px;height:36px;border-radius:10px;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--glass-border);color:var(--text);font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,0.35);transition:all .2s;user-select:none}
+.zoom-fab:hover{background:rgba(0,191,165,0.25);border-color:var(--accent);color:#fff;transform:scale(1.08)}
+.zoom-fab:active{transform:scale(0.92)}
+
+/* === WORKER MANAGEMENT UI & 3 TYPES === */
+.worker-avatar{width:34px;height:34px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#0a1628;flex-shrink:0;box-shadow:0 0 10px rgba(0,191,165,0.25)}
+.worker-pond-pill{display:inline-block;padding:2px 7px;background:rgba(0,191,165,0.12);border:1px solid rgba(0,191,165,0.28);border-radius:5px;color:var(--accent);font-size:10px;font-weight:600;margin:1px 2px;cursor:pointer;transition:all .15s}
+.worker-pond-pill:hover{background:rgba(0,191,165,0.32);border-color:var(--accent);transform:translateY(-1px);color:#fff}
+.status-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:12px;font-size:10px;font-weight:600}
+.status-pill.on_duty{background:rgba(105,240,174,0.15);color:var(--success);border:1px solid rgba(105,240,174,0.35)}
+.status-pill.on_break{background:rgba(255,183,77,0.15);color:var(--warn);border:1px solid rgba(255,183,77,0.35)}
+.status-pill.off_duty{background:rgba(255,255,255,0.06);color:var(--text-dim);border:1px solid rgba(255,255,255,0.12)}
+
+/* 3 Worker Types Badges & Selector Cards */
+.worker-type-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:0.3px;white-space:nowrap}
+.worker-type-badge.incharge{background:rgba(255,193,7,0.16);color:#FFE082;border:1px solid rgba(255,193,7,0.45)}
+.worker-type-badge.worker{background:rgba(0,191,165,0.16);color:#64FFDA;border:1px solid rgba(0,191,165,0.45)}
+.worker-type-badge.helper{background:rgba(66,165,245,0.16);color:#90CAF9;border:1px solid rgba(66,165,245,0.45)}
+
+.worker-type-card{padding:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:var(--text);cursor:pointer;text-align:center;transition:all .2s;user-select:none}
+.worker-type-card:hover{background:rgba(255,255,255,0.07);border-color:rgba(255,255,255,0.25);transform:translateY(-1px)}
+.worker-type-card.active[data-type="incharge"]{background:rgba(255,193,7,0.18);border-color:#FFD54F;color:#FFE082;box-shadow:0 0 14px rgba(255,193,7,0.25)}
+.worker-type-card.active[data-type="worker"]{background:rgba(0,191,165,0.18);border-color:var(--accent);color:#64FFDA;box-shadow:0 0 14px rgba(0,191,165,0.25)}
+.worker-type-card.active[data-type="helper"]{background:rgba(66,165,245,0.18);border-color:#42A5F5;color:#90CAF9;box-shadow:0 0 14px rgba(66,165,245,0.25)}
 </style>
 </head>
 <body>
@@ -211,6 +240,11 @@ canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none
     </div>
   </div>
   <div class="top-bar-right">
+    <div class="zoom-btn-group" style="display:flex;align-items:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:2px 4px;gap:2px">
+      <button class="area-btn" id="btnZoomIn" title="Zoom In (+)" style="padding:4px 8px;font-size:12px;font-weight:700">🔍+</button>
+      <button class="area-btn" id="btnZoomOut" title="Zoom Out (−)" style="padding:4px 8px;font-size:12px;font-weight:700">🔍−</button>
+      <button class="area-btn" id="btnResetZoom" title="Reset Camera View" style="padding:4px 8px;font-size:12px">🎯</button>
+    </div>
     <button class="area-btn" id="dragModeBtn" title="Switch between Pan and Rotate mode for Left-Click drag">✋ Pan</button>
     <div class="weather-wrap">
       <button class="weather-btn" id="weatherBtn">☀️ Sunny</button>
@@ -248,6 +282,7 @@ canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none
           <button class="menu-item-btn" id="btnOpenProfile">👤 Operator Profile</button>
           <button class="menu-item-btn" id="btnOpenSettings">⚙️ Farm Settings</button>
           <button class="menu-item-btn" id="btnOpenPondMgmt">🐟 Pond Management</button>
+          <button class="menu-item-btn" id="btnOpenWorkerMgmt">👷 Worker Management</button>
           <div style="height:1px;background:rgba(255,255,255,0.08);margin:6px 0"></div>
           <a href="login.html" class="area-btn" style="display:block;text-align:center;text-decoration:none;margin-bottom:6px" id="btnLoginLink">🔐 Sign In / Sign Up</a>
           <button class="area-btn" id="btnSignOut" style="display:none;width:100%;color:var(--danger)">🚪 Sign Out</button>
@@ -598,6 +633,199 @@ canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none
   </div>
 </div>
 
+<!-- WORKER MANAGEMENT HUB MODAL -->
+<div class="app-modal glass" id="workerMgmtModal" style="width:96%;max-width:1020px">
+  <div class="modal-header">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:22px">👷</span>
+      <div>
+        <h3 style="margin:0;font-size:16px">Field Crew & Worker Management Hub</h3>
+        <div style="font-size:11px;color:var(--text-dim)">Manage In-Charge Supervisors, Field Workers & Support Helpers across all farm sectors</div>
+      </div>
+    </div>
+    <button class="close-btn" data-close="workerMgmtModal">✕</button>
+  </div>
+
+  <!-- Crew Overview Metrics with 3 Types -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px">
+    <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px">
+      <div style="font-size:10px;color:var(--text-dim);text-transform:uppercase;font-weight:600">Total Crew</div>
+      <div style="font-size:22px;font-weight:800;color:#fff;margin-top:2px" id="workerTotalCount">9</div>
+    </div>
+    <div style="background:rgba(255,193,7,0.08);border:1px solid rgba(255,193,7,0.3);border-radius:10px;padding:10px 14px">
+      <div style="font-size:10px;color:#FFE082;text-transform:uppercase;font-weight:600">👑 In-Charge</div>
+      <div style="font-size:22px;font-weight:800;color:#FFE082;margin-top:2px" id="workerInChargeCount">3</div>
+    </div>
+    <div style="background:rgba(0,191,165,0.08);border:1px solid rgba(0,191,165,0.3);border-radius:10px;padding:10px 14px">
+      <div style="font-size:10px;color:var(--accent);text-transform:uppercase;font-weight:600">👷 Workers</div>
+      <div style="font-size:22px;font-weight:800;color:var(--accent);margin-top:2px" id="workerWorkerCount">4</div>
+    </div>
+    <div style="background:rgba(66,165,245,0.08);border:1px solid rgba(66,165,245,0.3);border-radius:10px;padding:10px 14px">
+      <div style="font-size:10px;color:#90CAF9;text-transform:uppercase;font-weight:600">🤝 Helpers</div>
+      <div style="font-size:22px;font-weight:800;color:#90CAF9;margin-top:2px" id="workerHelperCount">2</div>
+    </div>
+    <div style="background:rgba(105,240,174,0.06);border:1px solid rgba(105,240,174,0.25);border-radius:10px;padding:10px 14px">
+      <div style="font-size:10px;color:var(--success);text-transform:uppercase;font-weight:600">🟢 On Duty Active</div>
+      <div style="font-size:22px;font-weight:800;color:var(--success);margin-top:2px" id="workerOnDutyCount">7</div>
+    </div>
+  </div>
+
+  <!-- Search, Filter & Action Bar -->
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;background:rgba(255,255,255,0.03);padding:10px;border-radius:10px">
+    <div style="flex:1;min-width:180px">
+      <input type="text" id="workerSearchInput" placeholder="🔍 Search worker name, ID, type, role, ponds, or radio..." style="width:100%;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.14);border-radius:8px;padding:7px 12px;color:#fff;font-size:12px;outline:none">
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap" id="workerFilterBtns">
+      <button class="area-btn active" data-filter="all">All Crew (<span id="filterAllCount">9</span>)</button>
+      <button class="area-btn" data-filter="type:incharge">👑 In-Charge (<span id="filterInChargeCount">3</span>)</button>
+      <button class="area-btn" data-filter="type:worker">👷 Worker (<span id="filterWorkerCount">4</span>)</button>
+      <button class="area-btn" data-filter="type:helper">🤝 Helper (<span id="filterHelperCount">2</span>)</button>
+      <button class="area-btn" data-filter="on_duty">🟢 On Duty</button>
+      <button class="area-btn" data-filter="Grow-Out">Grow-Out</button>
+      <button class="area-btn" data-filter="Hatchery">Hatchery</button>
+      <button class="area-btn" data-filter="Nursery">Nursery</button>
+      <button class="area-btn" data-filter="Processing">Processing</button>
+    </div>
+    <button type="button" class="area-btn active" id="btnShowAddWorker" style="display:flex;align-items:center;gap:6px;margin-left:auto">
+      <span>➕ Register Worker</span>
+    </button>
+  </div>
+
+  <!-- Add / Edit Worker Drawer / Card (Hidden by default) -->
+  <div id="workerEditCard" style="display:none;padding:16px;background:rgba(0,191,165,0.08);border:1px solid var(--accent);border-radius:12px;margin-bottom:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <h4 id="workerEditTitle" style="color:var(--accent);font-size:15px;margin:0;display:flex;align-items:center;gap:8px">
+        <span>➕ Register New Crew Member</span>
+      </h4>
+      <button type="button" id="closeWorkerEdit" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:18px">✕</button>
+    </div>
+    <form id="workerEditForm">
+      <input type="hidden" id="editWorkerId">
+
+      <!-- STEP 1: Select Worker Type (3 Types: In-Charge, Worker, Helper) -->
+      <div style="margin-bottom:14px">
+        <label style="font-weight:700;font-size:12px;color:#fff;margin-bottom:6px;display:block">
+          Worker Classification / Type <span style="color:var(--danger)">*</span>
+        </label>
+        <div class="worker-type-options" id="workerTypeOptions" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+          <div class="worker-type-card active" data-type="incharge">
+            <div style="font-size:20px;margin-bottom:2px">👑</div>
+            <div style="font-weight:700;font-size:13px">In-Charge</div>
+            <div style="font-size:10px;color:var(--text-dim)">Pond & Sector Supervisor</div>
+          </div>
+          <div class="worker-type-card" data-type="worker">
+            <div style="font-size:20px;margin-bottom:2px">👷</div>
+            <div style="font-weight:700;font-size:13px">Worker</div>
+            <div style="font-size:10px;color:var(--text-dim)">Field Operator / Feeder / Tech</div>
+          </div>
+          <div class="worker-type-card" data-type="helper">
+            <div style="font-size:20px;margin-bottom:2px">🤝</div>
+            <div style="font-weight:700;font-size:13px">Helper</div>
+            <div style="font-size:10px;color:var(--text-dim)">Farm Support & Field Labor</div>
+          </div>
+        </div>
+        <input type="hidden" id="workerTypeInput" value="incharge">
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:12px">
+        <div class="form-row" style="margin:0">
+          <label>Full Name <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="workerNameInput" placeholder="e.g. Ramesh Reddy" required>
+        </div>
+        <div class="form-row" style="margin:0">
+          <label>Role / Specialization</label>
+          <select id="workerRoleSelect">
+            <!-- Dynamically populated based on selected type -->
+          </select>
+        </div>
+        <div class="form-row" style="margin:0">
+          <label>Assigned Sector</label>
+          <select id="workerSectorSelect">
+            <option value="Grow-Out">Grow-Out Sector</option>
+            <option value="Hatchery">Hatchery Sector</option>
+            <option value="Nursery">Nursery Sector</option>
+            <option value="Processing">Processing Sector</option>
+            <option value="Farm-Wide">Farm-Wide Operations</option>
+          </select>
+        </div>
+        <div class="form-row" style="margin:0">
+          <label>Assigned Ponds</label>
+          <input type="text" id="workerPondsInput" placeholder="e.g. P-01, P-02, P-03" value="P-01, P-02">
+        </div>
+        <div class="form-row" style="margin:0">
+          <label>Work Shift</label>
+          <select id="workerShiftSelect">
+            <option value="Morning (06:00 - 14:00)">Morning (06:00 - 14:00)</option>
+            <option value="Evening (14:00 - 22:00)">Evening (14:00 - 22:00)</option>
+            <option value="Night (22:00 - 06:00)">Night (22:00 - 06:00)</option>
+          </select>
+        </div>
+        <div class="form-row" style="margin:0">
+          <label>Duty Status</label>
+          <select id="workerStatusSelect">
+            <option value="on_duty">🟢 On Duty</option>
+            <option value="on_break">🟡 On Break</option>
+            <option value="off_duty">⚪ Off Duty</option>
+          </select>
+        </div>
+        <div class="form-row" style="margin:0">
+          <label>Contact Phone</label>
+          <input type="tel" id="workerPhoneInput" placeholder="+91 98450 12345" value="+91 ">
+        </div>
+        <div class="form-row" style="margin:0">
+          <label>Radio Channel</label>
+          <input type="text" id="workerRadioInput" placeholder="e.g. CH-04 (AquaNet)" value="CH-04 (AquaNet)">
+        </div>
+      </div>
+      <div class="form-row" style="margin-bottom:12px">
+        <label>Current Assigned Field Duty / Task <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="workerTaskInput" placeholder="e.g. Aerator paddlewheel inspection & DO checks" required>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button type="button" class="area-btn" id="btnCancelWorkerEdit">Cancel</button>
+        <button type="submit" class="area-btn active" id="btnSaveWorker">💾 Save Worker Record</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Workers Roster Table -->
+  <div style="max-height:380px;overflow-y:auto;border:1px solid rgba(255,255,255,0.08);border-radius:10px;margin-bottom:14px">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;text-align:left">
+      <thead style="background:rgba(0,0,0,0.5);position:sticky;top:0;z-index:2">
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.1)">
+          <th style="padding:10px">Worker</th>
+          <th style="padding:10px">Type</th>
+          <th style="padding:10px">Role & Specialty</th>
+          <th style="padding:10px">Sector & Ponds</th>
+          <th style="padding:10px">Shift</th>
+          <th style="padding:10px">Duty Status</th>
+          <th style="padding:10px">Current Field Duty</th>
+          <th style="padding:10px">Radio / Phone</th>
+          <th style="padding:10px;text-align:center">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="workerTableBody">
+        <!-- Rendered via JavaScript -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Footer Info & Close -->
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+    <div style="font-size:11px;color:var(--text-dim)">
+      💡 Click any pond tag (e.g. <span style="padding:1px 6px;background:rgba(0,191,165,0.15);border-radius:4px;color:var(--accent)">P-01</span>) or <b>🎯 Track</b> to follow the crew member in real-time 3D!
+    </div>
+    <button type="button" class="area-btn" data-close="workerMgmtModal">Close</button>
+  </div>
+</div>
+
+<!-- FLOATING QUICK ZOOM CONTROLS -->
+<div class="canvas-zoom-controls" id="canvasZoomControls">
+  <button class="zoom-fab" id="fabZoomIn" title="Zoom In (+)">➕</button>
+  <button class="zoom-fab" id="fabZoomOut" title="Zoom Out (−)">➖</button>
+  <button class="zoom-fab" id="fabReset" title="Reset Camera View">🎯</button>
+</div>
+
 <!-- CANVAS -->
 <div id="canvas-container"></div>
 
@@ -671,13 +899,13 @@ document.getElementById('canvas-container').appendChild(renderer.domElement);
 /* CONTROLS */
 const controls=new OrbitControls(camera,renderer.domElement);
 controls.enableDamping=true;
-controls.dampingFactor=0.08;
+controls.dampingFactor=0.12; // Snappier damping for crisp camera response
 controls.screenSpacePanning=false; // Ground panning along terrain
 controls.minDistance=15;
 controls.maxDistance=220;
 controls.maxPolarAngle=Math.PI/2.15;
 controls.enableZoom=true;
-controls.zoomSpeed=1.0; // Standard sensitivity: pinching outward zooms in, pinching inward zooms out
+controls.zoomSpeed=3.2; // Accelerated sensitivity: rapid and responsive zooming
 controls.mouseButtons={LEFT:THREE.MOUSE.PAN,MIDDLE:THREE.MOUSE.DOLLY,RIGHT:THREE.MOUSE.ROTATE};
 controls.touches={ONE:THREE.TOUCH.PAN,TWO:THREE.TOUCH.DOLLY_PAN};
 
@@ -705,6 +933,56 @@ renderer.domElement.addEventListener('pointercancel',e=>{
 
 // Prevent right-click context menu so right-drag rotation works
 renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
+
+// Fine-pitch wheel & trackpad booster to ensure fast & responsive zooming
+renderer.domElement.addEventListener('wheel', (e) => {
+  cameraAnimating = false;
+  isFollowing = false;
+  if (Math.abs(e.deltaY) > 0 && Math.abs(e.deltaY) < 45) {
+    const factor = e.deltaY < 0 ? 0.92 : 1.087;
+    const curDist = camera.position.distanceTo(controls.target);
+    const targetDist = Math.max(controls.minDistance, Math.min(controls.maxDistance, curDist * factor));
+    const offset = new THREE.Vector3().subVectors(camera.position, controls.target).normalize();
+    camera.position.copy(controls.target).addScaledVector(offset, targetDist);
+    controls.update();
+  }
+}, { passive: true });
+
+// Zoom button functions
+function applyZoom(deltaScale) {
+  cameraAnimating = false;
+  isFollowing = false;
+  const currentDist = camera.position.distanceTo(controls.target);
+  const newDist = Math.max(controls.minDistance, Math.min(controls.maxDistance, currentDist * deltaScale));
+  const dir = new THREE.Vector3().subVectors(camera.position, controls.target).normalize();
+  camera.position.copy(controls.target).addScaledVector(dir, newDist);
+  controls.update();
+}
+
+['btnZoomIn', 'fabZoomIn'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('click', (e) => { e.stopPropagation(); applyZoom(0.75); });
+});
+['btnZoomOut', 'fabZoomOut'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('click', (e) => { e.stopPropagation(); applyZoom(1.33); });
+});
+['btnResetZoom', 'fabReset'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('click', (e) => {
+    e.stopPropagation();
+    deselectObject();
+    const overview = areas['overview'];
+    if (overview) {
+      camTargetPos.set(...overview.pos);
+      camTargetLook.set(...overview.target);
+      cameraAnimating = true;
+      document.querySelectorAll('.area-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.area === 'overview');
+      });
+    }
+  });
+});
 
 // Stop camera animation when user manually drags/rotates/zooms
 let isFollowing=false;
@@ -1185,9 +1463,11 @@ workerPaths.forEach((path,i)=>{
   w.userData.speed=1.5+Math.random()*1.5;
   w.userData.clickable=true;
   w.userData.objType='worker';
-  w.userData.name=['Anand','Priya','Ravi','Lakshmi','Kumar','Sita','Vijay','Meena'][i];
-  w.userData.role=['Pond Manager','Feed Technician','Water Analyst','Hatchery Chief','Pond Worker','Lab Technician','Harvest Lead','Quality Inspector'][i];
-  w.userData.task=['Checking aerators','Distributing feed','Sampling water','Monitoring fry','Cleaning nets','Running tests','Prep for harvest','Inspecting stock'][i];
+  w.userData.workerId='WRK-' + String(i + 1).padStart(2, '0');
+  w.userData.name=['Rajesh','Priya','Anand','Manoj','Venkatesh','Kavitha','Suresh','Deepak'][i];
+  w.userData.fullName=['Rajesh Kumar','Priya Sundaram','Anand Patel','Manoj Verma','Venkatesh Rao','Kavitha Reddy','Suresh Naidu','Deepak Sen'][i];
+  w.userData.role=['Lead Aeration Technician','Senior Water Quality Specialist','Feed Distribution Supervisor','Larviculture & Broodstock Tech','Pond Bottom Specialist','Cold Chain & Packing Lead','Night DO Patrol & Security','Pump Mechanic'][i];
+  w.userData.task=['Checking aerators & paddlewheels','DO & pH sensor calibration; lime dosing','Morning feed hopper refill','Artemia nauplii culture prep','Sludge core sampling','Ice slurry packing prep','Perimeter optical DO check','Sluice gate maintenance'][i];
   scene.add(w);
   clickables.push(w);
   workers.push(w);
@@ -1443,15 +1723,52 @@ function updateDetailPanel(data){
         <div class="activity-item">${info.detail}</div>
       </div>`;
   }else if(data.objType==='worker'){
-    title.textContent=`👤 ${data.name}`;
+    const fullName = data.fullName || data.name;
+    title.textContent=`👤 ${fullName}`;
+    const staff = (typeof workersRoster !== 'undefined' ? workersRoster : []).find(w => w.id === data.workerId || w.name === fullName || w.name.startsWith(data.name));
+    const role = staff ? staff.role : data.role;
+    const wType = staff ? (staff.type || 'worker') : 'worker';
+    const task = staff ? staff.activeTask : data.task;
+    const shift = staff ? staff.shift : '06:00 – 14:00';
+    const sector = staff ? staff.sector : 'Grow-Out';
+    const ponds = staff ? (staff.ponds || []).join(', ') : 'P-01, P-02';
+    const phone = staff ? staff.phone : '+91 98450 11234';
+    const radio = staff ? staff.radio : 'CH-04 (AquaNet)';
+    const statusLabel = staff ? (staff.status === 'on_duty' ? '🟢 On Duty' : staff.status === 'on_break' ? '🟡 On Break' : '⚪ Off Duty') : '🟢 On Duty';
+
+    const typeBadge = wType === 'incharge'
+      ? `<span class="worker-type-badge incharge">👑 In-Charge</span>`
+      : wType === 'helper'
+      ? `<span class="worker-type-badge helper">🤝 Helper</span>`
+      : `<span class="worker-type-badge worker">👷 Worker</span>`;
+
     content.innerHTML=`
-      <div class="panel-section"><h4>Worker Profile</h4>
-        <div class="stat-row"><span>Name</span><span>${data.name}</span></div>
-        <div class="stat-row"><span>Role</span><span>${data.role}</span></div>
-        <div class="stat-row"><span>Current Task</span><span>${data.task}</span></div>
-        <div class="stat-row"><span>Shift</span><span>06:00 – 18:00</span></div>
-        <div class="stat-row"><span>Status</span><span><span class="status-dot active"></span>On Duty</span></div>
+      <div class="panel-section"><h4>Field Worker Profile</h4>
+        <div class="stat-row"><span>Employee ID</span><span><b>${data.workerId || 'WRK-01'}</b></span></div>
+        <div class="stat-row"><span>Full Name</span><span><b>${fullName}</b></span></div>
+        <div class="stat-row"><span>Classification</span><span>${typeBadge}</span></div>
+        <div class="stat-row"><span>Specialization</span><span>${role}</span></div>
+        <div class="stat-row"><span>Assigned Sector</span><span>${sector}</span></div>
+        <div class="stat-row"><span>Assigned Ponds</span><span>${ponds}</span></div>
+        <div class="stat-row"><span>Shift</span><span>${shift}</span></div>
+        <div class="stat-row"><span>Duty Status</span><span>${statusLabel}</span></div>
+        <div class="stat-row"><span>Contact Phone</span><span>${phone}</span></div>
+        <div class="stat-row"><span>Radio Frequency</span><span>📻 ${radio}</span></div>
+      </div>
+      <div class="panel-section"><h4>Live Task Assignment</h4>
+        <div class="activity-item" style="font-size:12px;color:#fff;line-height:1.4"><b>Current Duty:</b> ${task}</div>
+      </div>
+      <div style="margin-top:14px">
+        <button class="area-btn active" id="btnSideOpenWorkerMgmt" style="width:100%;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px">
+          <span>👷 Open Worker Management Hub</span>
+        </button>
       </div>`;
+    const hubBtn = document.getElementById('btnSideOpenWorkerMgmt');
+    if (hubBtn) {
+      hubBtn.addEventListener('click', () => {
+        openWorkerMgmtModal();
+      });
+    }
   }else if(data.objType==='boat'){
     title.textContent=`🚣 ${data.name}`;
     content.innerHTML=`
@@ -2041,6 +2358,7 @@ const modalBackdrop = document.getElementById('modalBackdrop');
 const profileModal = document.getElementById('profileModal');
 const settingsModal = document.getElementById('settingsModal');
 const pondMgmtModal = document.getElementById('pondMgmtModal');
+const workerMgmtModal = document.getElementById('workerMgmtModal');
 
 function openModal(modal) {
   userDrop.classList.remove('open');
@@ -2053,6 +2371,7 @@ function closeAllModals() {
   profileModal.style.display = 'none';
   settingsModal.style.display = 'none';
   pondMgmtModal.style.display = 'none';
+  if (workerMgmtModal) workerMgmtModal.style.display = 'none';
   firebaseModal.style.display = 'none';
 }
 
@@ -2080,6 +2399,12 @@ document.getElementById('btnOpenSettings').addEventListener('click', () => {
 document.getElementById('btnOpenPondMgmt').addEventListener('click', () => {
   openPondMgmtModal();
 });
+const btnOpenWorkerMgmt = document.getElementById('btnOpenWorkerMgmt');
+if (btnOpenWorkerMgmt) {
+  btnOpenWorkerMgmt.addEventListener('click', () => {
+    openWorkerMgmtModal();
+  });
+}
 
 /* --- PROFILE MODAL LOGIC --- */
 function openProfileModal() {
@@ -2271,6 +2596,581 @@ document.getElementById('pondEditForm').addEventListener('submit', async (e) => 
   renderPondMgmtTable();
   renderTable(currentActiveTab);
   document.getElementById('pondEditCard').style.display = 'none';
+});
+
+/* ============================================================
+   WORKER MANAGEMENT HUB LOGIC (3 TYPES: IN-CHARGE, WORKER, HELPER)
+   ============================================================ */
+const defaultWorkersList = [
+  {
+    id: 'WRK-01',
+    name: 'Rajesh Kumar',
+    type: 'incharge',
+    role: 'Grow-Out Sector In-Charge',
+    sector: 'Grow-Out',
+    ponds: ['P-01', 'P-02', 'P-03', 'P-04'],
+    shift: 'Morning (06:00 - 14:00)',
+    status: 'on_duty',
+    clockIn: '05:50 AM',
+    phone: '+91 98450 11234',
+    radio: 'CH-04 (AquaNet)',
+    activeTask: 'Supervising aerator runtimes & 10:00 AM feed distribution',
+    avatarColor: '#00BFA5'
+  },
+  {
+    id: 'WRK-02',
+    name: 'Priya Sundaram',
+    type: 'incharge',
+    role: 'Hatchery & Lab In-Charge',
+    sector: 'Hatchery',
+    ponds: ['P-09', 'P-10'],
+    shift: 'Morning (06:00 - 14:00)',
+    status: 'on_duty',
+    clockIn: '06:10 AM',
+    phone: '+91 97120 44589',
+    radio: 'CH-02 (AquaNet)',
+    activeTask: 'Water quality lab tests & scheduled lime buffering protocol',
+    avatarColor: '#26A69A'
+  },
+  {
+    id: 'WRK-03',
+    name: 'Anand Patel',
+    type: 'worker',
+    role: 'Feed Distribution Operator',
+    sector: 'Grow-Out',
+    ponds: ['P-01', 'P-02', 'P-03', 'P-04'],
+    shift: 'Morning (06:00 - 14:00)',
+    status: 'on_duty',
+    clockIn: '06:30 AM',
+    phone: '+91 98230 77123',
+    radio: 'CH-04 (AquaNet)',
+    activeTask: 'Refilling automatic timer feed hoppers (450 kg pellet batch)',
+    avatarColor: '#42A5F5'
+  },
+  {
+    id: 'WRK-04',
+    name: 'Manoj Verma',
+    type: 'worker',
+    role: 'Larviculture & Broodstock Tech',
+    sector: 'Hatchery',
+    ponds: ['P-09', 'P-10'],
+    shift: 'Evening (14:00 - 22:00)',
+    status: 'off_duty',
+    clockIn: '--',
+    phone: '+91 94410 88231',
+    radio: 'CH-01 (AquaNet)',
+    activeTask: 'Preparing Artemia nauplii live feed culture for spawning tanks',
+    avatarColor: '#AB47BC'
+  },
+  {
+    id: 'WRK-05',
+    name: 'Venkatesh Rao',
+    type: 'worker',
+    role: 'Pond Bottom & Sludge Specialist',
+    sector: 'Nursery',
+    ponds: ['P-05', 'P-06', 'P-07', 'P-08'],
+    shift: 'Morning (06:00 - 14:00)',
+    status: 'on_break',
+    clockIn: '06:00 AM',
+    phone: '+91 96540 33219',
+    radio: 'CH-04 (AquaNet)',
+    activeTask: 'Black sludge core sampling near central drain siphon P-07',
+    avatarColor: '#FFA726'
+  },
+  {
+    id: 'WRK-06',
+    name: 'Kavitha Reddy',
+    type: 'incharge',
+    role: 'Cold Chain & Processing In-Charge',
+    sector: 'Processing',
+    ponds: ['P-04', 'B-05'],
+    shift: 'Morning (06:00 - 14:00)',
+    status: 'on_duty',
+    clockIn: '05:45 AM',
+    phone: '+91 99120 66543',
+    radio: 'CH-03 (AquaNet)',
+    activeTask: 'Sorting, grading & ice slurry prep for 12.5 ton harvest batch',
+    avatarColor: '#EC407A'
+  },
+  {
+    id: 'WRK-07',
+    name: 'Suresh Naidu',
+    type: 'helper',
+    role: 'Night Security & Patrol Helper',
+    sector: 'Farm-Wide',
+    ponds: ['P-01', 'P-02', 'P-03', 'P-04', 'P-05'],
+    shift: 'Night (22:00 - 06:00)',
+    status: 'off_duty',
+    clockIn: '--',
+    phone: '+91 93450 99881',
+    radio: 'CH-05 (AquaNet)',
+    activeTask: 'Perimeter dyke security log & 03:00 AM optical DO spot-checks',
+    avatarColor: '#7E57C2'
+  },
+  {
+    id: 'WRK-08',
+    name: 'Deepak Sen',
+    type: 'worker',
+    role: 'Hydraulic & Pump Mechanic',
+    sector: 'Grow-Out',
+    ponds: ['P-01', 'P-02', 'B-01', 'B-02'],
+    shift: 'Morning (06:00 - 14:00)',
+    status: 'on_duty',
+    clockIn: '06:20 AM',
+    phone: '+91 91230 55478',
+    radio: 'CH-04 (AquaNet)',
+    activeTask: 'Main sea water intake canal sluice gate maintenance',
+    avatarColor: '#29B6F6'
+  },
+  {
+    id: 'WRK-09',
+    name: 'Mohan Das',
+    type: 'helper',
+    role: 'Pond Embankment & Netting Helper',
+    sector: 'Grow-Out',
+    ponds: ['P-02', 'P-03'],
+    shift: 'Morning (06:00 - 14:00)',
+    status: 'on_duty',
+    clockIn: '06:00 AM',
+    phone: '+91 92340 77651',
+    radio: 'CH-04 (AquaNet)',
+    activeTask: 'Hauling feed bags to auto-dispensers & bird netting checks',
+    avatarColor: '#66BB6A'
+  }
+];
+
+// Suggested roles by Worker Type
+const roleSuggestionsByType = {
+  incharge: [
+    'Grow-Out Sector In-Charge',
+    'Hatchery & Lab In-Charge',
+    'Water Quality & Biosecurity Supervisor',
+    'Pond Cluster Superintendent',
+    'Cold Chain & Processing In-Charge',
+    'Night Shift Field In-Charge',
+    'General Farm Superintendent'
+  ],
+  worker: [
+    'Lead Aeration Technician',
+    'Feed Distribution Operator',
+    'Larviculture & Broodstock Tech',
+    'Pond Bottom & Sludge Specialist',
+    'Hydraulic & Pump Mechanic',
+    'Biomass & Health Sampler',
+    'Optical DO & Sensor Specialist'
+  ],
+  helper: [
+    'Pond Embankment & Netting Helper',
+    'Feed Bag Loading & Transport Helper',
+    'Sluice Gate & Canal Helper',
+    'Harvest Box & Ice Slurry Assistant',
+    'Pond Dike Cleaning & Maintenance Helper',
+    'Night Security & Patrol Helper'
+  ]
+};
+
+function updateRoleOptions(type, selectedRole = '') {
+  const select = document.getElementById('workerRoleSelect');
+  if (!select) return;
+  const list = roleSuggestionsByType[type] || roleSuggestionsByType.worker;
+  let html = list.map(r => `<option value="${r}" ${r === selectedRole ? 'selected' : ''}>${r}</option>`).join('');
+  if (selectedRole && !list.includes(selectedRole)) {
+    html += `<option value="${selectedRole}" selected>${selectedRole} (Custom)</option>`;
+  }
+  html += `<option value="Custom">Custom Role (specify in task)</option>`;
+  select.innerHTML = html;
+}
+
+// Load workers from localStorage or fallback to default
+let workersRoster = [];
+try {
+  const savedWorkers = localStorage.getItem('aquafarm_workers_data');
+  if (savedWorkers) {
+    workersRoster = JSON.parse(savedWorkers);
+  }
+} catch (e) {
+  console.warn("Could not load workers from localStorage", e);
+}
+if (!workersRoster || workersRoster.length === 0) {
+  workersRoster = defaultWorkersList;
+} else {
+  // Ensure all workers have a type (migration for older records)
+  workersRoster.forEach(w => {
+    if (!w.type) {
+      const r = (w.role || '').toLowerCase();
+      if (r.includes('supervisor') || r.includes('in-charge') || r.includes('incharge') || r.includes('head') || r.includes('lead')) {
+        w.type = (r.includes('supervisor') || r.includes('in-charge') || r.includes('incharge')) ? 'incharge' : 'worker';
+      } else if (r.includes('helper') || r.includes('security') || r.includes('labor') || r.includes('assistant')) {
+        w.type = 'helper';
+      } else {
+        w.type = 'worker';
+      }
+    }
+  });
+}
+
+function saveWorkersRoster() {
+  try {
+    localStorage.setItem('aquafarm_workers_data', JSON.stringify(workersRoster));
+  } catch (e) {
+    console.warn("Could not save workers to localStorage", e);
+  }
+  sync3DWorkersWithRoster();
+}
+
+function sync3DWorkersWithRoster() {
+  workers.forEach((wMesh, idx) => {
+    const staff = workersRoster[idx];
+    if (staff) {
+      wMesh.userData.workerId = staff.id;
+      wMesh.userData.name = staff.name.split(' ')[0];
+      wMesh.userData.fullName = staff.name;
+      wMesh.userData.type = staff.type;
+      wMesh.userData.role = staff.role;
+      wMesh.userData.task = staff.activeTask;
+    }
+  });
+}
+sync3DWorkersWithRoster();
+
+let workerCurrentFilter = 'all';
+
+function updateWorkerCounts() {
+  const total = workersRoster.length;
+  const inChargeCount = workersRoster.filter(w => w.type === 'incharge').length;
+  const workerCount = workersRoster.filter(w => w.type === 'worker').length;
+  const helperCount = workersRoster.filter(w => w.type === 'helper').length;
+  const onDuty = workersRoster.filter(w => w.status === 'on_duty').length;
+
+  const elTotal = document.getElementById('workerTotalCount');
+  const elInCharge = document.getElementById('workerInChargeCount');
+  const elWorker = document.getElementById('workerWorkerCount');
+  const elHelper = document.getElementById('workerHelperCount');
+  const elOnDuty = document.getElementById('workerOnDutyCount');
+
+  if (elTotal) elTotal.textContent = total;
+  if (elInCharge) elInCharge.textContent = inChargeCount;
+  if (elWorker) elWorker.textContent = workerCount;
+  if (elHelper) elHelper.textContent = helperCount;
+  if (elOnDuty) elOnDuty.textContent = onDuty;
+
+  // Filter badge counts
+  const fAll = document.getElementById('filterAllCount');
+  const fInCharge = document.getElementById('filterInChargeCount');
+  const fWorker = document.getElementById('filterWorkerCount');
+  const fHelper = document.getElementById('filterHelperCount');
+
+  if (fAll) fAll.textContent = total;
+  if (fInCharge) fInCharge.textContent = inChargeCount;
+  if (fWorker) fWorker.textContent = workerCount;
+  if (fHelper) fHelper.textContent = helperCount;
+}
+
+function setWorkerTypeInForm(type) {
+  const input = document.getElementById('workerTypeInput');
+  if (input) input.value = type;
+
+  document.querySelectorAll('.worker-type-card').forEach(c => {
+    if (c.getAttribute('data-type') === type) {
+      c.classList.add('active');
+    } else {
+      c.classList.remove('active');
+    }
+  });
+  updateRoleOptions(type);
+}
+
+// Interactive Type Selection in Form
+document.getElementById('workerTypeOptions')?.addEventListener('click', (e) => {
+  const card = e.target.closest('.worker-type-card');
+  if (!card) return;
+  const type = card.getAttribute('data-type');
+  setWorkerTypeInForm(type);
+});
+
+function renderWorkerTable() {
+  const tbody = document.getElementById('workerTableBody');
+  if (!tbody) return;
+
+  updateWorkerCounts();
+
+  const query = (document.getElementById('workerSearchInput')?.value || '').toLowerCase().trim();
+
+  const filtered = workersRoster.filter(w => {
+    if (workerCurrentFilter === 'on_duty' && w.status !== 'on_duty') return false;
+    if (workerCurrentFilter.startsWith('type:')) {
+      const targetType = workerCurrentFilter.split(':')[1];
+      if (w.type !== targetType) return false;
+    } else if (workerCurrentFilter !== 'all' && workerCurrentFilter !== 'on_duty' && w.sector !== workerCurrentFilter) {
+      return false;
+    }
+
+    if (query) {
+      const matchName = (w.name || '').toLowerCase().includes(query);
+      const matchRole = (w.role || '').toLowerCase().includes(query);
+      const matchType = (w.type || '').toLowerCase().includes(query);
+      const matchId = (w.id || '').toLowerCase().includes(query);
+      const matchPhone = (w.phone || '').toLowerCase().includes(query);
+      const matchTask = (w.activeTask || '').toLowerCase().includes(query);
+      const matchPonds = (w.ponds || []).some(p => p.toLowerCase().includes(query));
+      return matchName || matchRole || matchType || matchId || matchPhone || matchTask || matchPonds;
+    }
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9" style="padding:24px;text-align:center;color:var(--text-dim)">No crew members found matching current filter.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(w => {
+    const initials = (w.name || 'W').split(' ').map(n => n[0]).slice(0, 2).join('');
+    const statusLabel = w.status === 'on_duty' ? '🟢 On Duty' : w.status === 'on_break' ? '🟡 On Break' : '⚪ Off Duty';
+    const statusClass = w.status;
+    const clockInfo = w.status === 'on_duty' ? `<span style="font-size:10px;color:var(--text-dim);display:block;margin-top:2px">Since ${w.clockIn || '06:00 AM'}</span>` : '';
+
+    const pondPills = (w.ponds || []).map(p => `<span class="worker-pond-pill" data-pond="${p}" title="Focus ${p} in 3D">${p}</span>`).join('');
+
+    const typeBadge = w.type === 'incharge'
+      ? `<span class="worker-type-badge incharge">👑 In-Charge</span>`
+      : w.type === 'helper'
+      ? `<span class="worker-type-badge helper">🤝 Helper</span>`
+      : `<span class="worker-type-badge worker">👷 Worker</span>`;
+
+    return `
+      <tr style="border-bottom:1px solid rgba(255,255,255,0.05);transition:background .2s" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'">
+        <td style="padding:10px;white-space:nowrap">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="worker-avatar" style="background:${w.avatarColor || '#00BFA5'}">${initials}</div>
+            <div>
+              <div style="font-weight:700;color:#fff;font-size:13px">${w.name}</div>
+              <div style="font-size:10px;color:var(--accent);font-family:monospace">${w.id}</div>
+            </div>
+          </div>
+        </td>
+        <td style="padding:10px;white-space:nowrap">
+          ${typeBadge}
+        </td>
+        <td style="padding:10px">
+          <div style="font-weight:600;color:var(--text)">${w.role}</div>
+          <div style="font-size:10px;color:var(--text-dim)">${w.sector} Sector</div>
+        </td>
+        <td style="padding:10px">
+          <div style="display:flex;flex-wrap:wrap;gap:2px">${pondPills || '<span style="color:var(--text-dim)">All Zones</span>'}</div>
+        </td>
+        <td style="padding:10px;white-space:nowrap;font-size:11px;color:var(--text-dim)">
+          ${w.shift}
+        </td>
+        <td style="padding:10px;white-space:nowrap">
+          <span class="status-pill ${statusClass}">${statusLabel}</span>
+          ${clockInfo}
+        </td>
+        <td style="padding:10px;font-size:11px;max-width:220px;line-height:1.3">
+          <div style="color:var(--text)">${w.activeTask || 'General farm inspection'}</div>
+          <button class="area-btn assign-task-btn" data-worker-id="${w.id}" style="padding:2px 6px;font-size:9px;margin-top:4px" title="Change task assignment">📋 Update Task</button>
+        </td>
+        <td style="padding:10px;white-space:nowrap;font-size:11px">
+          <div style="color:#fff">${w.phone}</div>
+          <div style="font-size:10px;color:var(--text-dim)">📻 ${w.radio}</div>
+        </td>
+        <td style="padding:10px;text-align:center;white-space:nowrap">
+          <div style="display:flex;gap:4px;justify-content:center">
+            <button class="area-btn toggle-duty-btn" data-worker-id="${w.id}" title="Toggle Duty Status (Clock in/out)" style="padding:4px 8px;font-size:11px">
+              ${w.status === 'on_duty' ? '⏸️ Break' : w.status === 'on_break' ? '🚪 Clock Out' : '🟢 Clock In'}
+            </button>
+            <button class="area-btn track-worker-btn" data-worker-id="${w.id}" title="Follow Worker in 3D" style="padding:4px 8px;font-size:11px">🎯 Track</button>
+            <button class="area-btn edit-worker-btn" data-worker-id="${w.id}" title="Edit Worker Details" style="padding:4px 8px;font-size:11px">✏️</button>
+            <button class="area-btn delete-worker-btn" data-worker-id="${w.id}" title="Remove Worker" style="padding:4px 8px;font-size:11px;color:var(--danger)">🗑️</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function openWorkerMgmtModal() {
+  const editCard = document.getElementById('workerEditCard');
+  if (editCard) editCard.style.display = 'none';
+  renderWorkerTable();
+  openModal(workerMgmtModal);
+}
+
+// Search and Sector / Type Filter Events
+document.getElementById('workerSearchInput')?.addEventListener('input', renderWorkerTable);
+
+document.getElementById('workerFilterBtns')?.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-filter]');
+  if (!btn) return;
+  document.querySelectorAll('#workerFilterBtns button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  workerCurrentFilter = btn.getAttribute('data-filter');
+  renderWorkerTable();
+});
+
+// Show Register New Worker Card
+document.getElementById('btnShowAddWorker')?.addEventListener('click', () => {
+  document.getElementById('editWorkerId').value = '';
+  document.getElementById('workerEditTitle').innerHTML = '<span>➕ Register New Crew Member</span>';
+  document.getElementById('workerNameInput').value = '';
+  setWorkerTypeInForm('incharge');
+  document.getElementById('workerSectorSelect').value = 'Grow-Out';
+  document.getElementById('workerPondsInput').value = 'P-01, P-02';
+  document.getElementById('workerShiftSelect').value = 'Morning (06:00 - 14:00)';
+  document.getElementById('workerStatusSelect').value = 'on_duty';
+  document.getElementById('workerPhoneInput').value = '+91 ';
+  document.getElementById('workerRadioInput').value = 'CH-04 (AquaNet)';
+  document.getElementById('workerTaskInput').value = 'Routine telemetry verification & sector supervision';
+
+  const card = document.getElementById('workerEditCard');
+  card.style.display = 'block';
+  card.scrollIntoView({ behavior: 'smooth' });
+});
+
+// Close Worker Edit Card
+document.getElementById('closeWorkerEdit')?.addEventListener('click', () => {
+  document.getElementById('workerEditCard').style.display = 'none';
+});
+document.getElementById('btnCancelWorkerEdit')?.addEventListener('click', () => {
+  document.getElementById('workerEditCard').style.display = 'none';
+});
+
+// Worker Edit & Form Submit
+document.getElementById('workerEditForm')?.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const id = document.getElementById('editWorkerId').value.trim();
+  const name = document.getElementById('workerNameInput').value.trim();
+  const type = document.getElementById('workerTypeInput').value || 'worker';
+  const role = document.getElementById('workerRoleSelect').value;
+  const sector = document.getElementById('workerSectorSelect').value;
+  const pondsRaw = document.getElementById('workerPondsInput').value;
+  const ponds = pondsRaw.split(',').map(p => p.trim()).filter(Boolean);
+  const shift = document.getElementById('workerShiftSelect').value;
+  const status = document.getElementById('workerStatusSelect').value;
+  const phone = document.getElementById('workerPhoneInput').value.trim();
+  const radio = document.getElementById('workerRadioInput').value.trim();
+  const activeTask = document.getElementById('workerTaskInput').value.trim();
+
+  if (id) {
+    // Edit existing
+    const existing = workersRoster.find(w => w.id === id);
+    if (existing) {
+      Object.assign(existing, { name, type, role, sector, ponds, shift, status, phone, radio, activeTask });
+    }
+  } else {
+    // New worker
+    const newId = 'WRK-' + String(workersRoster.length + 1).padStart(2, '0');
+    const colors = ['#00BFA5', '#26A69A', '#42A5F5', '#AB47BC', '#FFA726', '#EC407A', '#7E57C2', '#29B6F6', '#66BB6A'];
+    const avatarColor = colors[workersRoster.length % colors.length];
+    const newWorker = {
+      id: newId,
+      name,
+      type,
+      role,
+      sector,
+      ponds,
+      shift,
+      status,
+      clockIn: status === 'on_duty' ? new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--',
+      phone,
+      radio,
+      activeTask,
+      avatarColor
+    };
+    workersRoster.push(newWorker);
+  }
+
+  saveWorkersRoster();
+  renderWorkerTable();
+  document.getElementById('workerEditCard').style.display = 'none';
+});
+
+// Table Click Handlers: Track, Edit, Toggle Duty, Assign Task, Delete, Pond Click
+document.getElementById('workerTableBody')?.addEventListener('click', (e) => {
+  const trackBtn = e.target.closest('.track-worker-btn');
+  const editBtn = e.target.closest('.edit-worker-btn');
+  const toggleBtn = e.target.closest('.toggle-duty-btn');
+  const taskBtn = e.target.closest('.assign-task-btn');
+  const deleteBtn = e.target.closest('.delete-worker-btn');
+  const pondPill = e.target.closest('.worker-pond-pill');
+
+  if (trackBtn) {
+    const wId = trackBtn.getAttribute('data-worker-id');
+    const staff = workersRoster.find(w => w.id === wId);
+    if (!staff) return;
+
+    // Find corresponding 3D worker
+    const wMesh = workers.find(w => w.userData.workerId === wId || (w.userData.fullName && w.userData.fullName.toLowerCase() === staff.name.toLowerCase()));
+    closeAllModals();
+    if (wMesh) {
+      selectObject(wMesh);
+    } else if (staff.ponds && staff.ponds.length > 0) {
+      const pId = staff.ponds[0];
+      const targetPond = pondGroups.find(g => g.userData.id === pId);
+      if (targetPond) selectObject(targetPond);
+    }
+  } else if (editBtn) {
+    const wId = editBtn.getAttribute('data-worker-id');
+    const staff = workersRoster.find(w => w.id === wId);
+    if (staff) {
+      document.getElementById('editWorkerId').value = staff.id;
+      document.getElementById('workerEditTitle').innerHTML = `<span>✏️ Edit ${staff.name} (${staff.id})</span>`;
+      document.getElementById('workerNameInput').value = staff.name;
+      setWorkerTypeInForm(staff.type || 'worker');
+      updateRoleOptions(staff.type || 'worker', staff.role);
+      document.getElementById('workerSectorSelect').value = staff.sector;
+      document.getElementById('workerPondsInput').value = (staff.ponds || []).join(', ');
+      document.getElementById('workerShiftSelect').value = staff.shift;
+      document.getElementById('workerStatusSelect').value = staff.status;
+      document.getElementById('workerPhoneInput').value = staff.phone;
+      document.getElementById('workerRadioInput').value = staff.radio;
+      document.getElementById('workerTaskInput').value = staff.activeTask;
+
+      const card = document.getElementById('workerEditCard');
+      card.style.display = 'block';
+      card.scrollIntoView({ behavior: 'smooth' });
+    }
+  } else if (toggleBtn) {
+    const wId = toggleBtn.getAttribute('data-worker-id');
+    const staff = workersRoster.find(w => w.id === wId);
+    if (staff) {
+      if (staff.status === 'on_duty') {
+        staff.status = 'on_break';
+      } else if (staff.status === 'on_break') {
+        staff.status = 'off_duty';
+      } else {
+        staff.status = 'on_duty';
+        staff.clockIn = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
+      saveWorkersRoster();
+      renderWorkerTable();
+    }
+  } else if (taskBtn) {
+    const wId = taskBtn.getAttribute('data-worker-id');
+    const staff = workersRoster.find(w => w.id === wId);
+    if (staff) {
+      const newTask = prompt(`Enter new duty assignment for ${staff.name}:`, staff.activeTask);
+      if (newTask !== null && newTask.trim() !== '') {
+        staff.activeTask = newTask.trim();
+        saveWorkersRoster();
+        renderWorkerTable();
+      }
+    }
+  } else if (deleteBtn) {
+    const wId = deleteBtn.getAttribute('data-worker-id');
+    const staff = workersRoster.find(w => w.id === wId);
+    if (staff && confirm(`Are you sure you want to remove ${staff.name} (${staff.id}) from the active crew roster?`)) {
+      workersRoster = workersRoster.filter(w => w.id !== wId);
+      saveWorkersRoster();
+      renderWorkerTable();
+    }
+  } else if (pondPill) {
+    const pId = pondPill.getAttribute('data-pond');
+    const targetPond = pondGroups.find(g => g.userData.id === pId);
+    if (targetPond) {
+      closeAllModals();
+      selectObject(targetPond);
+    }
+  }
 });
 
 // Initialize Firebase with stored config (if any)
