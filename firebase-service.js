@@ -20,6 +20,16 @@ import {
   onAuthStateChanged 
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
+export const DEFAULT_FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDQ6XV9scxkweVpXo8oq2DidfXd4hkqiRI",
+  authDomain: "my-fram.firebaseapp.com",
+  projectId: "my-fram",
+  storageBucket: "my-fram.firebasestorage.app",
+  messagingSenderId: "1047141115912",
+  appId: "1:1047141115912:web:d7685a67f4eb6cf32e89bd",
+  measurementId: "G-5WN8V5PC5R"
+};
+
 class AquaFarmFirebase {
   constructor() {
     this.app = null;
@@ -36,7 +46,7 @@ class AquaFarmFirebase {
     };
   }
 
-  // Load config from localStorage or window
+  // Load config from localStorage, window, or default
   getConfig() {
     try {
       const stored = localStorage.getItem('aquafarm_firebase_config');
@@ -44,7 +54,7 @@ class AquaFarmFirebase {
     } catch (e) {
       console.warn("Failed to parse stored firebase config", e);
     }
-    return window.AQUAFARM_FIREBASE_CONFIG || null;
+    return window.AQUAFARM_FIREBASE_CONFIG || DEFAULT_FIREBASE_CONFIG;
   }
 
   saveConfig(config) {
