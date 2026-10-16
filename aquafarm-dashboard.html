@@ -858,41 +858,191 @@ pondData.forEach(p=>{
 });
 
 /* ============================================================
-   AERATORS
+   AQUACULTURE PADDLEWHEEL AERATOR ("AQUA AERATOR")
+   Matches commercial 4-wheel aerator with 3 blue pontoons,
+   central electric motor gearbox, and 4 yellow scoop paddle wheels.
    ============================================================ */
-const aerators=[];
-pondData.forEach((p,i)=>{
-  const count=p.w>20?3:2;
-  for(let a=0;a<count;a++){
-    const ag=new THREE.Group();
-    // Float
-    const fl=box(1.2,0.25,0.7,new THREE.MeshStandardMaterial({color:0x1565C0,roughness:0.7,flatShading:true}));
-    fl.position.y=0.65;ag.add(fl);
-    // Paddle wheel
-    const wheel=new THREE.Group();
-    for(let j=0;j<6;j++){
-      const angle=(j/6)*Math.PI*2;
-      const paddle=box(0.08,0.4,0.5,new THREE.MeshStandardMaterial({color:0xE0E0E0,roughness:0.8,flatShading:true}));
-      paddle.position.set(Math.cos(angle)*0.25,Math.sin(angle)*0.25,0);
-      paddle.rotation.z=angle;
-      wheel.add(paddle);
-    }
-    wheel.position.set(0,0.9,0);
-    ag.add(wheel);
-    // Spray particles
-    const sprayGeo=new THREE.BufferGeometry();
-    const sprayPos=new Float32Array(30*3);
-    for(let s=0;s<30;s++){sprayPos[s*3]=(Math.random()-0.5)*1.2;sprayPos[s*3+1]=0.8+Math.random()*0.6;sprayPos[s*3+2]=(Math.random()-0.5)*0.8;}
-    sprayGeo.setAttribute('position',new THREE.BufferAttribute(sprayPos,3));
-    const spray=new THREE.Points(sprayGeo,new THREE.PointsMaterial({color:0xE0F7FA,size:0.08,transparent:true,opacity:0.5}));
-    ag.add(spray);
+const bluePontoonMat = new THREE.MeshStandardMaterial({ color: 0x1976D2, roughness: 0.45, metalness: 0.1, flatShading: true });
+const frameMat = new THREE.MeshStandardMaterial({ color: 0xB0BEC5, roughness: 0.35, metalness: 0.75, flatShading: true });
+const motorMat = new THREE.MeshStandardMaterial({ color: 0x0D47A1, roughness: 0.4, metalness: 0.2, flatShading: true });
+const motorLabelMat = new THREE.MeshStandardMaterial({ color: 0xFFD54F, roughness: 0.5, flatShading: true });
+const bearingMat = new THREE.MeshStandardMaterial({ color: 0x00ACC1, roughness: 0.4, flatShading: true });
+const axleMat = new THREE.MeshStandardMaterial({ color: 0xE0E0E0, roughness: 0.25, metalness: 0.85 });
+const paddleMat = new THREE.MeshStandardMaterial({ color: 0xFFB300, roughness: 0.45, metalness: 0.15, flatShading: true });
+const paddleHubMat = new THREE.MeshStandardMaterial({ color: 0xF57C00, roughness: 0.5, flatShading: true });
 
-    const spacing=p.w/(count+1);
-    ag.position.set(p.x-p.w/2+spacing*(a+1),0,p.z+(Math.random()-0.5)*p.d*0.5);
-    ag.userData={clickable:true,objType:'aerator',pondId:p.id,name:`Aerator ${p.id}-A${a+1}`,speed:2+Math.random()*2};
+function createPontoonMesh() {
+  const pGroup = new THREE.Group();
+  // Central pontoon body
+  const body = box(0.28, 0.16, 1.1, bluePontoonMat);
+  pGroup.add(body);
+  // Rounded nose (front)
+  const noseFront = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.16, 8, 1, false, 0, Math.PI), bluePontoonMat);
+  noseFront.position.set(0, 0, 0.55);
+  pGroup.add(noseFront);
+  // Rounded tail (back)
+  const noseBack = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.16, 8, 1, false, Math.PI, Math.PI), bluePontoonMat);
+  noseBack.position.set(0, 0, -0.55);
+  pGroup.add(noseBack);
+  return pGroup;
+}
+
+function createSinglePaddleWheel() {
+  const wGroup = new THREE.Group();
+  // Central hub collar
+  const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.12, 10), paddleHubMat);
+  hub.rotation.z = Math.PI / 2;
+  wGroup.add(hub);
+
+  // 8 angled paddle blades radiating around axle
+  const bladeCount = 8;
+  for (let b = 0; b < bladeCount; b++) {
+    const angle = (b / bladeCount) * Math.PI * 2;
+    const bladeArm = new THREE.Group();
+    bladeArm.rotation.x = angle;
+
+    // Paddle blade scoop
+    const blade = box(0.18, 0.13, 0.025, paddleMat);
+    blade.position.set(0, 0.21, 0.04);
+    blade.rotation.x = 0.25; // angled scoop pitch
+    bladeArm.add(blade);
+
+    // Radial spoke
+    const spoke = box(0.04, 0.15, 0.02, paddleMat);
+    spoke.position.set(0, 0.09, 0.01);
+    bladeArm.add(spoke);
+
+    wGroup.add(bladeArm);
+  }
+  return wGroup;
+}
+
+function createAquaAerator() {
+  const ag = new THREE.Group();
+
+  // 1. Three Blue Floating Pontoons (Left, Center, Right)
+  const pCenter = createPontoonMesh();
+  pCenter.position.set(0, 0.62, 0);
+  ag.add(pCenter);
+
+  const pLeft = createPontoonMesh();
+  pLeft.position.set(-0.72, 0.62, 0);
+  ag.add(pLeft);
+
+  const pRight = createPontoonMesh();
+  pRight.position.set(0.72, 0.62, 0);
+  ag.add(pRight);
+
+  // 2. Stainless Steel Mounting Frame
+  const frameBarFront = box(1.88, 0.035, 0.05, frameMat);
+  frameBarFront.position.set(0, 0.72, 0.32);
+  ag.add(frameBarFront);
+
+  const frameBarBack = box(1.88, 0.035, 0.05, frameMat);
+  frameBarBack.position.set(0, 0.72, -0.32);
+  ag.add(frameBarBack);
+
+  // Longitudinal braces over pontoons
+  [-0.72, 0, 0.72].forEach(px => {
+    const brace = box(0.04, 0.035, 0.74, frameMat);
+    brace.position.set(px, 0.725, 0);
+    ag.add(brace);
+  });
+
+  // 3. Central Blue Electric Motor & Reduction Gearbox
+  const motorBase = box(0.24, 0.16, 0.24, motorMat);
+  motorBase.position.set(0, 0.78, 0);
+  ag.add(motorBase);
+
+  const motorTop = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.12, 0.38, 10), motorMat);
+  motorTop.position.set(0, 0.95, 0);
+  ag.add(motorTop);
+
+  const motorCap = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 8, 0, Math.PI * 2, 0, Math.PI / 2), motorMat);
+  motorCap.position.set(0, 1.14, 0);
+  ag.add(motorCap);
+
+  // Yellow spec badge on front face of motor
+  const badge = box(0.10, 0.06, 0.015, motorLabelMat);
+  badge.position.set(0, 1.0, 0.12);
+  ag.add(badge);
+
+  // 4. Outer Bearing Pillow Blocks (Cyan/Blue)
+  const bearingLeft = box(0.06, 0.10, 0.06, bearingMat);
+  bearingLeft.position.set(-0.96, 0.76, 0);
+  ag.add(bearingLeft);
+
+  const bearingRight = box(0.06, 0.10, 0.06, bearingMat);
+  bearingRight.position.set(0.96, 0.76, 0);
+  ag.add(bearingRight);
+
+  // 5. Rotating Axle Assembly (Axle + 4 Paddle Wheels)
+  const rotatingAssembly = new THREE.Group();
+  rotatingAssembly.position.set(0, 0.76, 0); // Axle center line
+
+  // Long horizontal stainless steel shaft
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 1.96, 8), axleMat);
+  shaft.rotation.z = Math.PI / 2;
+  rotatingAssembly.add(shaft);
+
+  // Four Yellow Paddle Wheels (2 left of motor, 2 right of motor)
+  const wheelPositions = [-0.75, -0.36, 0.36, 0.75];
+  wheelPositions.forEach(wx => {
+    const wheel = createSinglePaddleWheel();
+    wheel.position.set(wx, 0, 0);
+    rotatingAssembly.add(wheel);
+  });
+
+  ag.add(rotatingAssembly);
+
+  // 6. Dynamic Water Spray Particles (positioned around the 4 churning wheels)
+  const sprayCount = 48;
+  const sprayGeo = new THREE.BufferGeometry();
+  const sprayPos = new Float32Array(sprayCount * 3);
+  for (let s = 0; s < sprayCount; s++) {
+    const wheelX = wheelPositions[s % 4];
+    sprayPos[s * 3] = wheelX + (Math.random() - 0.5) * 0.22;
+    sprayPos[s * 3 + 1] = 0.56 + Math.random() * 0.35;
+    sprayPos[s * 3 + 2] = -0.22 + Math.random() * 0.44;
+  }
+  sprayGeo.setAttribute('position', new THREE.BufferAttribute(sprayPos, 3));
+  const spray = new THREE.Points(sprayGeo, new THREE.PointsMaterial({
+    color: 0xE0F7FA,
+    size: 0.11,
+    transparent: true,
+    opacity: 0.65
+  }));
+  ag.add(spray);
+
+  return { group: ag, wheel: rotatingAssembly, spray, wheelPositions };
+}
+
+const aerators = [];
+pondData.forEach((p, i) => {
+  const count = p.w > 20 ? 3 : 2;
+  for (let a = 0; a < count; a++) {
+    const aeratorObj = createAquaAerator();
+    const ag = aeratorObj.group;
+
+    const spacing = p.w / (count + 1);
+    ag.position.set(p.x - p.w / 2 + spacing * (a + 1), 0, p.z + (Math.random() - 0.5) * p.d * 0.4);
+    ag.userData = {
+      clickable: true,
+      objType: 'aerator',
+      pondId: p.id,
+      name: `Aqua Aerator ${p.id}-A${a + 1}`,
+      speed: 3.5 + Math.random() * 1.5
+    };
     scene.add(ag);
     clickables.push(ag);
-    aerators.push({group:ag,wheel,spray,speed:2+Math.random()*2});
+    aerators.push({
+      group: ag,
+      wheel: aeratorObj.wheel,
+      spray: aeratorObj.spray,
+      wheelPositions: aeratorObj.wheelPositions,
+      pondId: p.id,
+      speed: 3.5 + Math.random() * 1.5
+    });
   }
 });
 
@@ -1321,15 +1471,18 @@ function updateDetailPanel(data){
   }else if(data.objType==='aerator'){
     title.textContent=`🌀 ${data.name}`;
     content.innerHTML=`
-      <div class="panel-section"><h4>Aerator Telemetry</h4>
+      <div class="panel-section"><h4>Aqua Aerator Telemetry</h4>
+        <div class="stat-row"><span>Equipment Model</span><span>Aqua Aerator 4-Wheel</span></div>
         <div class="stat-row"><span>Assigned Pond</span><span>${data.pondId}</span></div>
-        <div class="stat-row"><span>Motor Status</span><span><span class="status-dot active"></span>Running</span></div>
-        <div class="stat-row"><span>Rotation Speed</span><span>105 RPM</span></div>
-        <div class="stat-row"><span>Power Rating</span><span>1.5 kW</span></div>
-        <div class="stat-row"><span>Oxygen Transfer</span><span>1.8 kg O₂/kWh</span></div>
+        <div class="stat-row"><span>Float Pontoons</span><span>3x Marine Blue HDPE</span></div>
+        <div class="stat-row"><span>Paddlewheels</span><span>4x Yellow Scoop Impellers</span></div>
+        <div class="stat-row"><span>Electric Motor</span><span>2.0 HP (1.5 kW) IP55</span></div>
+        <div class="stat-row"><span>Shaft Speed</span><span>105 RPM</span></div>
+        <div class="stat-row"><span>Oxygen Dissolution</span><span>1.8 kg O₂/hr</span></div>
+        <div class="stat-row"><span>Operational Status</span><span><span class="status-dot active"></span>Active Churning</span></div>
       </div>
-      <div class="panel-section"><h4>Controls</h4>
-        <div class="activity-item">Automated based on dissolved oxygen readings.</div>
+      <div class="panel-section"><h4>Aeration Controls</h4>
+        <div class="activity-item">Spinning dynamically to optimize dissolved oxygen and maintain healthy water circulation.</div>
       </div>`;
   }
 }
@@ -2236,16 +2389,27 @@ function animate(){
     mesh.geometry.computeVertexNormals();
   });
 
-  /* --- AERATORS --- */
+  /* --- AERATORS (AQUA AERATOR 4-WHEEL SPIN & SPRAY) --- */
   aerators.forEach(a=>{
-    a.wheel.rotation.x+=a.speed*dt;
-    // Spray particle jitter
-    const sp=a.spray.geometry.attributes.position;
-    for(let i=0;i<sp.count;i++){
-      sp.setY(i,0.8+Math.random()*0.6);
-      sp.setX(i,(Math.random()-0.5)*1.2);
+    const pond = pondData.find(p => p.id === a.pondId);
+    const isRunning = !pond || (pond.aeratorStatus !== 'off' && pond.aeratorStatus !== 'idle');
+
+    if (isRunning) {
+      a.wheel.rotation.x += a.speed * dt;
+      a.spray.visible = true;
+
+      // Churning water spray particles under the 4 yellow paddle wheels
+      const sp = a.spray.geometry.attributes.position;
+      for (let i = 0; i < sp.count; i++) {
+        const wx = a.wheelPositions[i % 4];
+        sp.setX(i, wx + (Math.random() - 0.5) * 0.22);
+        sp.setY(i, 0.58 + Math.random() * 0.38);
+        sp.setZ(i, -0.22 + Math.random() * 0.45);
+      }
+      sp.needsUpdate = true;
+    } else {
+      a.spray.visible = false;
     }
-    sp.needsUpdate=true;
   });
 
   /* --- WORKERS --- */
