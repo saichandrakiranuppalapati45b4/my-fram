@@ -1,0 +1,296 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: ponds
+    // Document ID: {pondId} (e.g. 'P-01', 'P-02')
+    // Fields:
+    //   - id: string (required, 1-20 chars, matches doc ID, immutable)
+    //   - species: string (required, 1-60 chars) - species name
+    //   - stock: int (required, >= 0 and <= 10,000,000) - current population count
+    //   - temp: number (required, 10.0 to 45.0) - water temperature in °C
+    //   - ph: number (required, 4.0 to 11.0) - water pH level
+    //   - dox: number (required, 0.0 to 20.0) - dissolved oxygen in mg/L
+    //   - nh3: number (required, 0.0 to 10.0) - ammonia concentration in ppm
+    //   - status: string (required, enum: active, warning, critical, maintenance, harvested, empty)
+    //   - aeratorStatus: string (required, enum: running, idle, off, maintenance, fault)
+    //   - lastUpdated: timestamp (required) - telemetry update timestamp
+    //   - name: string (optional, 1-60 chars) - display name
+    //   - area: string (optional, enum: overview, hatchery, nursery, growout, processing)
+    //   - x: number (optional) - 3D scene X coordinate
+    //   - z: number (optional) - 3D scene Z coordinate
+    //   - w: number (optional) - 3D scene pond width
+    //   - d: number (optional) - 3D scene pond depth
+    //
+    // Collection: alerts
+    // Document ID: {alertId} (e.g. 'ALT-01', auto-generated ID)
+    // Fields:
+    //   - id: string (required, 1-40 chars, matches doc ID, immutable)
+    //   - pondId: string (required, 1-40 chars, immutable) - target pond or system component
+    //   - message: string (required, 1-500 chars) - descriptive alert text
+    //   - severity: string (required, enum: info, warning, critical, success, maintenance)
+    //   - timestamp: timestamp (required, immutable) - event timestamp
+    //   - resolved: bool (required) - resolution status
+    //
+    // Collection: metrics
+    // Document ID: {metricId} (e.g. 'summary', 'daily-2026-10-16')
+    // Fields:
+    //   - id: string (optional, 1-40 chars)
+    //   - totalFishStock: int (required, >= 0 and <= 100,000,000)
+    //   - fcr: number (required, 0.0 to 10.0) - Feed Conversion Ratio
+    //   - waterQualityIndex: number (required, 0.0 to 100.0) - percentage index
+    //   - lastUpdated: timestamp (required)
+    //
+    // Collection: weather
+    // Document ID: {docId} (e.g. 'current')
+    // Fields:
+    //   - id: string (optional, 1-40 chars)
+    //   - currentWeather: string (required, enum: sunny, cloudy, rain, storm, windy)
+    //   - isNight: bool (required) - day/night cycle state
+    //   - updatedAt: timestamp (required)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Global Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (request.auth.token.admin == true ||
+         (request.auth.token.role is string && request.auth.token.role == 'admin'));
+    }
+
+    function isOperator() {
+      return isAuthenticated() &&
+        (isAdmin() ||
+         request.auth.token.operator == true ||
+         (request.auth.token.role is string && request.auth.token.role == 'operator'));
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidOptionalString(data, field, minLen, maxLen) {
+      return !(field in data) ||
+        (data[field] is string &&
+         data[field].size() >= minLen &&
+         data[field].size() <= maxLen);
+    }
+
+    function isValidOptionalNumber(data, field) {
+      return !(field in data) || (data[field] is number);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    // Validates pond documents for both create and update operations
+    function isValidPond(data, pondId) {
+      return hasRequiredFields([
+               'id', 'species', 'stock', 'temp', 'ph',
+               'dox', 'nh3', 'status', 'aeratorStatus', 'lastUpdated'
+             ]) &&
+             hasOnlyAllowedFields([
+               'id', 'name', 'species', 'stock', 'temp', 'ph',
+               'dox', 'nh3', 'status', 'aeratorStatus', 'lastUpdated',
+               'area', 'x', 'z', 'w', 'd'
+             ]) &&
+             // Identifiers and strings
+             data.id is string &&
+             data.id == pondId &&
+             data.id.size() > 0 &&
+             data.id.size() <= 20 &&
+             data.species is string &&
+             data.species.size() > 0 &&
+             data.species.size() <= 60 &&
+             isValidOptionalString(data, 'name', 1, 60) &&
+             // Stock count must be a non-negative integer
+             data.stock is int &&
+             data.stock >= 0 &&
+             data.stock <= 10000000 &&
+             // Realistic aquaculture physical telemetry parameters
+             data.temp is number &&
+             data.temp >= 10.0 &&
+             data.temp <= 45.0 &&
+             data.ph is number &&
+             data.ph >= 4.0 &&
+             data.ph <= 11.0 &&
+             data.dox is number &&
+             data.dox >= 0.0 &&
+             data.dox <= 20.0 &&
+             data.nh3 is number &&
+             data.nh3 >= 0.0 &&
+             data.nh3 <= 10.0 &&
+             // Enums
+             data.status in ['active', 'warning', 'critical', 'maintenance', 'harvested', 'empty'] &&
+             data.aeratorStatus in ['running', 'idle', 'off', 'maintenance', 'fault'] &&
+             (!( 'area' in data ) || data.area in ['overview', 'hatchery', 'nursery', 'growout', 'processing']) &&
+             // Spatial layout coordinates if present
+             isValidOptionalNumber(data, 'x') &&
+             isValidOptionalNumber(data, 'z') &&
+             isValidOptionalNumber(data, 'w') &&
+             isValidOptionalNumber(data, 'd') &&
+             // Timestamp
+             data.lastUpdated is timestamp;
+    }
+
+    function areImmutablePondFieldsUnchanged() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['id']);
+    }
+
+    // Validates alert documents for both create and update operations
+    function isValidAlert(data, alertId) {
+      return hasRequiredFields(['id', 'pondId', 'message', 'severity', 'timestamp', 'resolved']) &&
+             hasOnlyAllowedFields(['id', 'pondId', 'message', 'severity', 'timestamp', 'resolved']) &&
+             data.id is string &&
+             data.id == alertId &&
+             data.id.size() > 0 &&
+             data.id.size() <= 40 &&
+             data.pondId is string &&
+             data.pondId.size() > 0 &&
+             data.pondId.size() <= 40 &&
+             data.message is string &&
+             data.message.size() > 0 &&
+             data.message.size() <= 500 &&
+             data.severity in ['info', 'warning', 'critical', 'success', 'maintenance'] &&
+             data.timestamp is timestamp &&
+             data.resolved is bool;
+    }
+
+    function areImmutableAlertFieldsUnchanged() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['id', 'pondId', 'timestamp']);
+    }
+
+    // Validates farm metrics documents for both create and update operations
+    function isValidMetrics(data) {
+      return hasRequiredFields(['totalFishStock', 'fcr', 'waterQualityIndex', 'lastUpdated']) &&
+             hasOnlyAllowedFields(['id', 'totalFishStock', 'fcr', 'waterQualityIndex', 'lastUpdated']) &&
+             isValidOptionalString(data, 'id', 1, 40) &&
+             data.totalFishStock is int &&
+             data.totalFishStock >= 0 &&
+             data.totalFishStock <= 100000000 &&
+             data.fcr is number &&
+             data.fcr >= 0.0 &&
+             data.fcr <= 10.0 &&
+             data.waterQualityIndex is number &&
+             data.waterQualityIndex >= 0.0 &&
+             data.waterQualityIndex <= 100.0 &&
+             data.lastUpdated is timestamp;
+    }
+
+    function areImmutableMetricFieldsUnchanged() {
+      return !('id' in resource.data) || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['id']);
+    }
+
+    // Validates weather documents for both create and update operations
+    function isValidWeather(data) {
+      return hasRequiredFields(['currentWeather', 'isNight', 'updatedAt']) &&
+             hasOnlyAllowedFields(['id', 'currentWeather', 'isNight', 'updatedAt']) &&
+             isValidOptionalString(data, 'id', 1, 40) &&
+             data.currentWeather in ['sunny', 'cloudy', 'rain', 'storm', 'windy'] &&
+             data.isNight is bool &&
+             data.updatedAt is timestamp;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    // Default deny all undefined paths
+    match /{document=**} {
+      allow read, write: false;
+    }
+
+    // ---------------------------------------------------------------
+    // 1. Ponds Collection
+    // ---------------------------------------------------------------
+    match /ponds/{pondId} {
+      // Public / authenticated read for farm monitoring
+      allow read: if true;
+
+      // Authenticated writes strictly validated against physical range constraints
+      allow create: if isAuthenticated() &&
+                       isValidPond(request.resource.data, pondId);
+
+      allow update: if isAuthenticated() &&
+                       isValidPond(request.resource.data, pondId) &&
+                       areImmutablePondFieldsUnchanged();
+
+      // Only authorized operators or admins can delete pond documents
+      allow delete: if isOperator() || isAdmin();
+    }
+
+    // ---------------------------------------------------------------
+    // 2. Alerts Collection
+    // ---------------------------------------------------------------
+    match /alerts/{alertId} {
+      // Public / authenticated read for dashboard banner & notification dropdown
+      allow read: if true;
+
+      // Authenticated operators or system services can log alerts
+      allow create: if isAuthenticated() &&
+                       isValidAlert(request.resource.data, alertId);
+
+      // Alert updates (e.g., resolving alerts) require validation and preserve event history
+      allow update: if isAuthenticated() &&
+                       isValidAlert(request.resource.data, alertId) &&
+                       areImmutableAlertFieldsUnchanged();
+
+      // Only authorized operators or admins can delete alerts
+      allow delete: if isOperator() || isAdmin();
+    }
+
+    // ---------------------------------------------------------------
+    // 3. Overall Farm Metrics
+    // ---------------------------------------------------------------
+    match /metrics/{metricId} {
+      // Public / authenticated read for KPI cards
+      allow read: if true;
+
+      // Authenticated services or operators can update metrics
+      allow create: if isAuthenticated() &&
+                       isValidMetrics(request.resource.data);
+
+      allow update: if isAuthenticated() &&
+                       isValidMetrics(request.resource.data) &&
+                       areImmutableMetricFieldsUnchanged();
+
+      // Admin-only deletion
+      allow delete: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------
+    // 4. Weather & Environmental Settings
+    // ---------------------------------------------------------------
+    match /weather/{docId} {
+      // Public read for 3D lighting, atmosphere, and sky rendering
+      allow read: if true;
+
+      // Authenticated operators or telemetry worker can update weather state
+      allow create: if isAuthenticated() &&
+                       isValidWeather(request.resource.data);
+
+      allow update: if isAuthenticated() &&
+                       isValidWeather(request.resource.data);
+
+      // Admin-only deletion
+      allow delete: if isAdmin();
+    }
+  }
+}

@@ -180,9 +180,13 @@ tr:hover td{background:rgba(0,191,165,0.05);color:var(--text)}
         <button data-weather="stormy">⛈️ Stormy</button>
       </div>
     </div>
+    <button class="area-btn" id="firebaseBtn" title="Firebase Database Status" style="display:flex;align-items:center;gap:6px">
+      <span class="status-dot warning" id="fbDot" style="margin:0"></span>
+      <span id="fbText">🔥 Firebase</span>
+    </button>
     <div class="clock" id="liveClock">00:00:00</div>
     <div class="alerts-wrap" id="alertsWrap">
-      🔔<span class="badge">3</span>
+      🔔<span class="badge" id="alertsBadge">3</span>
       <div class="alerts-drop glass" id="alertsDrop">
         <div class="alert-item" data-pond="P-03" style="cursor:pointer" title="Click to view Pond P-03"><span>⚠️</span><span><b>Pond P-03</b> — pH dropping: 7.8→6.9. Check lime dosing.</span></div>
         <div class="alert-item" data-building="B-02" style="cursor:pointer" title="Click to view Feed Storage"><span>✅</span><span><b>Feed delivery</b> — 2.5 tons received at Storage.</span></div>
@@ -260,6 +264,29 @@ tr:hover td{background:rgba(0,191,165,0.05);color:var(--text)}
 <!-- SELECTION LABEL -->
 <div class="sel-label" id="selLabel"><div class="sel-label-inner" id="selLabelText"></div><div class="sel-label-arrow"></div></div>
 
+<!-- FIREBASE CONFIG MODAL -->
+<div class="firebase-modal glass" id="firebaseModal" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:300;width:92%;max-width:480px;padding:20px;box-shadow:0 12px 48px rgba(0,0,0,0.6)">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:10px">
+    <h3 style="font-size:15px;color:var(--accent);display:flex;align-items:center;gap:8px">🔥 Firebase Database Setup</h3>
+    <button class="close-btn" id="closeFbModal">✕</button>
+  </div>
+  <div style="font-size:12px;line-height:1.5;color:var(--text-dim);margin-bottom:12px">
+    Connect to Google <b>Cloud Firestore</b> to sync your IoT pond telemetry, alerts, and farm metrics in real time.
+  </div>
+  <div style="margin-bottom:12px">
+    <label style="display:block;font-size:11px;font-weight:600;margin-bottom:4px;color:var(--text)">Firebase Web App Config (JSON or JS Object):</label>
+    <textarea id="fbConfigInput" rows="7" style="width:100%;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:8px;color:#fff;font-family:monospace;font-size:11px;resize:vertical;outline:none" placeholder='{\n  "apiKey": "AIzaSy...",\n  "authDomain": "my-farm-db.firebaseapp.com",\n  "projectId": "my-farm-db",\n  "storageBucket": "my-farm-db.appspot.com",\n  "messagingSenderId": "123456789",\n  "appId": "1:123456789:web:abcdef"\n}'></textarea>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+    <button class="area-btn active" id="btnSaveFbConfig" style="flex:1">💾 Save & Connect</button>
+    <button class="area-btn" id="btnSeedFb" style="flex:1">🌱 Seed Firestore</button>
+    <button class="area-btn" id="btnSimulatePing" style="flex:1">⚡ Test Live Ping</button>
+  </div>
+  <div id="fbStatusMsg" style="font-size:11px;padding:8px;border-radius:6px;background:rgba(255,255,255,0.05);color:var(--text-dim);text-align:center">
+    Status: Offline / Local Simulation Mode
+  </div>
+</div>
+
 <!-- CANVAS -->
 <div id="canvas-container"></div>
 
@@ -269,6 +296,7 @@ tr:hover td{background:rgba(0,191,165,0.05);color:var(--text)}
 <script type="module">
 import*as THREE from'three';
 import{OrbitControls}from'three/addons/controls/OrbitControls.js';
+import{firebaseService}from'./firebase-service.js';
 
 /* ============================================================
    CONFIGURATION & DATA
@@ -1060,8 +1088,10 @@ const tableData={
   }).join('')}</tbody></table>`,
 };
 
+let currentActiveTab='pondStatus';
 function renderTable(tab){
-  document.getElementById('tableContent').innerHTML=tableData[tab]();
+  if(tab)currentActiveTab=tab;
+  document.getElementById('tableContent').innerHTML=tableData[currentActiveTab]();
 }
 renderTable('pondStatus');
 
@@ -1224,12 +1254,179 @@ setInterval(updateClock,1000);
 updateClock();
 
 function updateKPIs(){
+  if(firebaseService.isConnected) return;
   const fs=284500+Math.floor(Math.random()*800-300);
   document.getElementById('kpi1').textContent=fs.toLocaleString();
   document.getElementById('kpi2').textContent=(1.42+(Math.random()*0.06-0.03)).toFixed(2);
   document.getElementById('kpi3').textContent=(94.2+(Math.random()*1.5-0.5)).toFixed(1)+'%';
 }
 setInterval(updateKPIs,5000);
+
+/* ============================================================
+   FIREBASE FIRESTORE INTEGRATION
+   ============================================================ */
+const firebaseModal = document.getElementById('firebaseModal');
+const firebaseBtn = document.getElementById('firebaseBtn');
+const closeFbModal = document.getElementById('closeFbModal');
+const fbConfigInput = document.getElementById('fbConfigInput');
+const btnSaveFbConfig = document.getElementById('btnSaveFbConfig');
+const btnSeedFb = document.getElementById('btnSeedFb');
+const btnSimulatePing = document.getElementById('btnSimulatePing');
+const fbStatusMsg = document.getElementById('fbStatusMsg');
+const fbDot = document.getElementById('fbDot');
+const fbText = document.getElementById('fbText');
+
+// Pre-fill config if present in localStorage
+const existingFbConfig = firebaseService.getConfig();
+if (existingFbConfig) {
+  fbConfigInput.value = JSON.stringify(existingFbConfig, null, 2);
+}
+
+firebaseBtn.addEventListener('click', () => {
+  firebaseModal.style.display = 'block';
+});
+closeFbModal.addEventListener('click', () => {
+  firebaseModal.style.display = 'none';
+});
+
+firebaseService.callbacks.onStatusChange = ({ connected, message }) => {
+  if (connected) {
+    fbDot.className = 'status-dot active';
+    fbText.textContent = '🔥 Live Firestore';
+    fbStatusMsg.textContent = `Status: ${message} (Realtime Live Sync)`;
+    fbStatusMsg.style.color = 'var(--success)';
+  } else {
+    fbDot.className = 'status-dot warning';
+    fbText.textContent = '🔥 Firebase';
+    fbStatusMsg.textContent = `Status: ${message}`;
+    fbStatusMsg.style.color = 'var(--text-dim)';
+  }
+};
+
+firebaseService.callbacks.onPondsUpdate = (remotePonds) => {
+  remotePonds.forEach(rp => {
+    const local = pondData.find(p => p.id === rp.id);
+    if (local) {
+      Object.assign(local, rp);
+    }
+    // Update selected object if active
+    if (selectedObject && selectedObject.userData.objType === 'pond' && selectedObject.userData.id === rp.id) {
+      Object.assign(selectedObject.userData, rp);
+      updateDetailPanel(selectedObject.userData);
+    }
+  });
+  renderTable(currentActiveTab);
+};
+
+firebaseService.callbacks.onMetricsUpdate = (metrics) => {
+  if (metrics.totalFishStock !== undefined) document.getElementById('kpi1').textContent = Number(metrics.totalFishStock).toLocaleString();
+  if (metrics.fcr !== undefined) document.getElementById('kpi2').textContent = Number(metrics.fcr).toFixed(2);
+  if (metrics.waterQualityIndex !== undefined) document.getElementById('kpi3').textContent = Number(metrics.waterQualityIndex).toFixed(1) + '%';
+};
+
+firebaseService.callbacks.onAlertsUpdate = (remoteAlerts) => {
+  const badge = document.getElementById('alertsBadge');
+  const drop = document.getElementById('alertsDrop');
+  const unresolved = remoteAlerts.filter(a => !a.resolved);
+  if (badge) badge.textContent = unresolved.length;
+  if (drop && remoteAlerts.length > 0) {
+    drop.innerHTML = remoteAlerts.map(a => {
+      const icon = a.severity === 'critical' ? '🚨' : a.severity === 'warning' ? '⚠️' : a.severity === 'success' ? '✅' : '🔧';
+      return `<div class="alert-item" data-pond="${a.pondId || ''}" style="cursor:pointer" title="Click to inspect"><span>${icon}</span><span><b>${a.pondId || 'System'}</b> — ${a.message}</span></div>`;
+    }).join('');
+  }
+};
+
+firebaseService.callbacks.onWeatherUpdate = (remoteWeather) => {
+  if (remoteWeather.currentWeather && remoteWeather.currentWeather !== currentWeather) {
+    setWeather(remoteWeather.currentWeather);
+  }
+  if (remoteWeather.isNight !== undefined && remoteWeather.isNight !== isNight) {
+    isNight = remoteWeather.isNight;
+    document.getElementById('dnToggle').textContent = isNight ? '🌙' : '☀️';
+  }
+};
+
+// Initialize Firebase with stored config (if any)
+firebaseService.init();
+
+// Save config handler
+btnSaveFbConfig.addEventListener('click', async () => {
+  const raw = fbConfigInput.value.trim();
+  if (!raw) {
+    firebaseService.clearConfig();
+    fbStatusMsg.textContent = "Configuration cleared. Using local demo mode.";
+    return;
+  }
+  try {
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      // Allow javascript object notation
+      parsed = Function('"use strict";return (' + raw + ')')();
+    }
+    fbStatusMsg.textContent = "Connecting to Firestore...";
+    const ok = await firebaseService.saveConfig(parsed);
+    if (!ok) {
+      fbStatusMsg.textContent = "Connection failed. Please check your credentials & project ID.";
+      fbStatusMsg.style.color = "var(--danger)";
+    }
+  } catch (err) {
+    fbStatusMsg.textContent = "Invalid config format: " + err.message;
+    fbStatusMsg.style.color = "var(--danger)";
+  }
+});
+
+// Seed data handler
+btnSeedFb.addEventListener('click', async () => {
+  if (!firebaseService.isConnected) {
+    alert("Please connect to Firebase first before seeding data!");
+    return;
+  }
+  try {
+    btnSeedFb.textContent = "Seeding...";
+    const sampleAlerts = [
+      { id: 'ALT-01', pondId: 'P-03', message: 'pH dropping: 7.8→6.9. Check lime dosing.', severity: 'warning', resolved: false },
+      { id: 'ALT-02', pondId: 'B-02', message: 'Feed delivery — 2.5 tons received at Storage.', severity: 'success', resolved: false },
+      { id: 'ALT-03', pondId: 'P-07', message: 'Aerator P-07-A2 — maintenance due in 2 days.', severity: 'warning', resolved: false },
+      { id: 'ALT-04', pondId: 'P-01', message: 'Temperature rising: 29.8°C threshold.', severity: 'warning', resolved: false }
+    ];
+    await firebaseService.seedInitialData(pondData, sampleAlerts);
+    btnSeedFb.textContent = "✅ Seeded!";
+    fbStatusMsg.textContent = "Firestore database seeded with 11 ponds, metrics, alerts and weather!";
+    fbStatusMsg.style.color = "var(--success)";
+    setTimeout(() => { btnSeedFb.textContent = "🌱 Seed Firestore"; }, 2500);
+  } catch (err) {
+    alert("Seeding error: " + err.message);
+    btnSeedFb.textContent = "🌱 Seed Firestore";
+  }
+});
+
+// Simulate Live Ping
+btnSimulatePing.addEventListener('click', async () => {
+  if (!firebaseService.isConnected) {
+    alert("Please connect to Firebase first to test live IoT ping!");
+    return;
+  }
+  try {
+    btnSimulatePing.textContent = "Sending Ping...";
+    const testTemp = Number((28.0 + Math.random() * 2.5).toFixed(1));
+    const testDox = Number((5.5 + Math.random() * 2.0).toFixed(1));
+    await firebaseService.updatePondTelemetry('P-01', {
+      temp: testTemp,
+      dox: testDox,
+      status: testDox < 6.0 ? 'warning' : 'active'
+    });
+    btnSimulatePing.textContent = "⚡ Ping Sent!";
+    fbStatusMsg.textContent = `Pushed IoT update to Pond P-01 (Temp: ${testTemp}°C, DO: ${testDox} mg/L). Watch the live sync!`;
+    fbStatusMsg.style.color = "var(--accent)";
+    setTimeout(() => { btnSimulatePing.textContent = "⚡ Test Live Ping"; }, 2000);
+  } catch (err) {
+    alert("Ping error: " + err.message);
+    btnSimulatePing.textContent = "⚡ Test Live Ping";
+  }
+});
 
 /* ============================================================
    LOADING
