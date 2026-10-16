@@ -17,7 +17,13 @@ import {
 import { 
   getAuth, 
   signInAnonymously, 
-  onAuthStateChanged 
+  onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
+  signOut,
+  updateProfile
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 export const DEFAULT_FIREBASE_CONFIG = {
@@ -42,7 +48,8 @@ class AquaFarmFirebase {
       onMetricsUpdate: null,
       onAlertsUpdate: null,
       onWeatherUpdate: null,
-      onStatusChange: null
+      onStatusChange: null,
+      onAuthChange: null
     };
   }
 
@@ -83,12 +90,12 @@ class AquaFarmFirebase {
       this.db = getFirestore(this.app);
       this.auth = getAuth(this.app);
 
-      // Sign in anonymously if auth is enabled
-      try {
-        await signInAnonymously(this.auth);
-      } catch (authErr) {
-        console.warn("Anonymous sign-in skipped/failed:", authErr.message);
-      }
+      // Listen to Auth State
+      onAuthStateChanged(this.auth, (user) => {
+        if (this.callbacks.onAuthChange) {
+          this.callbacks.onAuthChange(user);
+        }
+      });
 
       this.isConnected = true;
       this.updateStatus(true, `Connected: ${fbConfig.projectId}`);
@@ -99,6 +106,48 @@ class AquaFarmFirebase {
       this.updateStatus(false, "Connection Failed");
       return false;
     }
+  }
+
+  // Authentication Helpers
+  async signUp(email, password, displayName = '') {
+    if (!this.auth) await this.init();
+    const cred = await createUserWithEmailAndPassword(this.auth, email, password);
+    if (displayName && cred.user) {
+      try {
+        await updateProfile(cred.user, { displayName });
+      } catch (e) {
+        console.warn("Update profile error:", e);
+      }
+    }
+    return cred.user;
+  }
+
+  async signIn(email, password) {
+    if (!this.auth) await this.init();
+    const cred = await signInWithEmailAndPassword(this.auth, email, password);
+    return cred.user;
+  }
+
+  async signInWithGoogle() {
+    if (!this.auth) await this.init();
+    const provider = new GoogleAuthProvider();
+    const cred = await signInWithPopup(this.auth, provider);
+    return cred.user;
+  }
+
+  async signInGuest() {
+    if (!this.auth) await this.init();
+    const cred = await signInAnonymously(this.auth);
+    return cred.user;
+  }
+
+  async logOut() {
+    if (!this.auth) return;
+    await signOut(this.auth);
+  }
+
+  getCurrentUser() {
+    return this.auth ? this.auth.currentUser : null;
   }
 
   disconnect() {

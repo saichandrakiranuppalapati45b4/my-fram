@@ -44,7 +44,9 @@ canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none
 .alert-item:last-child{border:none}
 .dn-toggle{background:rgba(255,255,255,0.06);border:1px solid transparent;border-radius:8px;width:36px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:all .2s}
 .dn-toggle:hover{border-color:var(--accent)}
-.user-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer}
+.user-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;font-weight:700}
+.user-drop{position:absolute;top:110%;right:0;width:220px;padding:12px;display:none;z-index:200}
+.user-drop.open{display:block}
 
 /* === KPI CARDS === */
 .kpi-container{position:fixed;top:66px;left:16px;display:flex;gap:10px;z-index:50}
@@ -196,7 +198,19 @@ tr:hover td{background:rgba(0,191,165,0.05);color:var(--text)}
       </div>
     </div>
     <button class="dn-toggle" id="dnToggle" title="Day/Night">☀️</button>
-    <div class="user-avatar" title="Admin">👤</div>
+    <div class="user-menu-wrap" style="position:relative">
+      <div class="user-avatar" id="userAvatar" title="User Account">👤</div>
+      <div class="user-drop glass" id="userDrop">
+        <div style="margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.08)">
+          <div id="userDisplayName" style="font-weight:700;font-size:13px;color:#fff">Guest User</div>
+          <div id="userEmail" style="font-size:11px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis">Demo Access</div>
+        </div>
+        <div id="authLinks">
+          <a href="login.html" class="area-btn" style="display:block;text-align:center;text-decoration:none;margin-bottom:6px" id="btnLoginLink">🔐 Sign In / Sign Up</a>
+          <button class="area-btn" id="btnSignOut" style="display:none;width:100%;color:var(--danger)">🚪 Sign Out</button>
+        </div>
+      </div>
+    </div>
   </div>
 </header>
 
@@ -1346,6 +1360,54 @@ firebaseService.callbacks.onWeatherUpdate = (remoteWeather) => {
     document.getElementById('dnToggle').textContent = isNight ? '🌙' : '☀️';
   }
 };
+
+/* --- USER MENU & AUTHENTICATION LISTENER --- */
+const userAvatar = document.getElementById('userAvatar');
+const userDrop = document.getElementById('userDrop');
+const userDisplayName = document.getElementById('userDisplayName');
+const userEmail = document.getElementById('userEmail');
+const btnLoginLink = document.getElementById('btnLoginLink');
+const btnSignOut = document.getElementById('btnSignOut');
+
+userAvatar.addEventListener('click', (e) => {
+  e.stopPropagation();
+  userDrop.classList.toggle('open');
+  document.getElementById('alertsDrop').classList.remove('open');
+  document.getElementById('weatherDrop').classList.remove('open');
+});
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.user-menu-wrap')) {
+    userDrop.classList.remove('open');
+  }
+});
+
+firebaseService.callbacks.onAuthChange = (user) => {
+  if (user && !user.isAnonymous) {
+    userDisplayName.textContent = user.displayName || user.email.split('@')[0];
+    userEmail.textContent = user.email || 'Authorized Operator';
+    userAvatar.textContent = (user.displayName ? user.displayName.charAt(0) : user.email.charAt(0)).toUpperCase();
+    userAvatar.title = user.displayName || user.email;
+    btnLoginLink.style.display = 'none';
+    btnSignOut.style.display = 'block';
+  } else {
+    userDisplayName.textContent = 'Guest Operator';
+    userEmail.textContent = 'Demo Mode';
+    userAvatar.textContent = '👤';
+    userAvatar.title = 'Sign In to AquaFarm';
+    btnLoginLink.style.display = 'block';
+    btnSignOut.style.display = 'none';
+  }
+};
+
+btnSignOut.addEventListener('click', async () => {
+  try {
+    await firebaseService.logOut();
+    window.location.reload();
+  } catch (err) {
+    console.error("Sign out error:", err);
+  }
+});
 
 // Initialize Firebase with stored config (if any)
 firebaseService.init();
