@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>AquaFarm Command</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--accent:#00BFA5;--accent2:#00897B;--glass:rgba(0,20,40,0.62);--glass-border:rgba(255,255,255,0.12);--glass-blur:18px;--text:#E0F7FA;--text-dim:#80CBC4;--danger:#FF5252;--warn:#FFB74D;--success:#69F0AE;--radius:14px;--shadow:0 8px 32px rgba(0,0,0,0.3)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{overflow:hidden;font-family:'Inter',system-ui,sans-serif;background:#0a1628;color:var(--text)}
+#canvas-container{position:fixed;inset:0;z-index:0;touch-action:none}
+canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none}
+
+/* === GLASS MIXIN === */
+.glass{background:var(--glass);backdrop-filter:blur(var(--glass-blur));-webkit-backdrop-filter:blur(var(--glass-blur));border:1px solid var(--glass-border);border-radius:var(--radius);box-shadow:var(--shadow)}
+
+/* === TOP BAR === */
+.top-bar{position:fixed;top:0;left:0;right:0;height:54px;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-radius:0;gap:8px}
+.top-bar-left{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
+.logo{font-weight:800;font-size:16px;white-space:nowrap;display:flex;align-items:center;gap:6px;color:var(--accent)}
+.logo svg{width:24px;height:24px}
+.search-box{position:relative;max-width:200px}
+.search-box input{width:100%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:6px 10px 6px 30px;color:var(--text);font-size:12px;outline:none;transition:border .2s}
+.search-box input:focus{border-color:var(--accent)}
+.search-box::before{content:"🔍";position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:12px}
+.area-btns{display:flex;gap:4px}
+.area-btn{background:rgba(255,255,255,0.06);border:1px solid transparent;border-radius:8px;padding:5px 10px;color:var(--text-dim);font-size:11px;font-weight:500;cursor:pointer;transition:all .25s;white-space:nowrap}
+.area-btn:hover,.area-btn.active{background:rgba(0,191,165,0.2);border-color:var(--accent);color:var(--accent)}
+.top-bar-right{display:flex;align-items:center;gap:10px}
+.weather-wrap{position:relative}
+.weather-btn{background:rgba(255,255,255,0.06);border:1px solid transparent;border-radius:8px;padding:5px 10px;color:var(--text);font-size:12px;cursor:pointer;transition:all .2s}
+.weather-btn:hover{border-color:var(--accent)}
+.weather-drop{position:absolute;top:110%;right:0;min-width:140px;padding:6px;display:none;z-index:200}
+.weather-drop.open{display:block}
+.weather-drop button{display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer}
+.weather-drop button:hover{background:rgba(0,191,165,0.15)}
+.clock{font-variant-numeric:tabular-nums;font-size:13px;font-weight:600;color:var(--accent)}
+.alerts-wrap{position:relative;cursor:pointer}
+.badge{background:var(--danger);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;position:absolute;top:-4px;right:-6px}
+.alerts-drop{position:absolute;top:110%;right:0;width:280px;padding:8px;display:none;z-index:200;max-height:300px;overflow-y:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+.alerts-drop.open{display:block}
+.alert-item{padding:8px;border-radius:8px;font-size:11px;line-height:1.4;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;gap:8px;align-items:flex-start}
+.alert-item:last-child{border:none}
+.dn-toggle{background:rgba(255,255,255,0.06);border:1px solid transparent;border-radius:8px;width:36px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:all .2s}
+.dn-toggle:hover{border-color:var(--accent)}
+.user-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer}
+
+/* === KPI CARDS === */
+.kpi-container{position:fixed;top:66px;left:16px;display:flex;gap:10px;z-index:50}
+.kpi-card{padding:14px 16px;min-width:185px;display:flex;gap:10px;align-items:flex-start;transition:transform .2s}
+.kpi-card:hover{transform:translateY(-2px)}
+.kpi-icon{font-size:28px;line-height:1}
+.kpi-label{font-size:10px;font-weight:500;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px}
+.kpi-value{font-size:22px;font-weight:800;margin:2px 0}
+.kpi-trend{font-size:10px;font-weight:500}
+.kpi-trend.up{color:var(--success)}
+.kpi-trend.down{color:var(--accent)}
+
+/* === RIGHT PANEL === */
+.right-panel{position:fixed;top:66px;right:16px;bottom:16px;width:300px;z-index:50;display:flex;flex-direction:column;overflow:hidden;transition:transform .3s}
+.right-panel.hidden{transform:translateX(340px)}
+.panel-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.08)}
+.panel-header h3{font-size:14px;font-weight:600}
+.close-btn{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:16px;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center}
+.close-btn:hover{background:rgba(255,255,255,0.1)}
+.panel-content{flex:1;overflow-y:auto;padding:12px 16px;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+.panel-section{margin-bottom:16px}
+.panel-section h4{font-size:12px;font-weight:600;color:var(--accent);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+.stat-row{display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid rgba(255,255,255,0.04)}
+.stat-row span:first-child{color:var(--text-dim)}
+.stat-row span:last-child{font-weight:600}
+.stat-bar{height:6px;border-radius:3px;background:rgba(255,255,255,0.08);margin-top:4px;overflow:hidden}
+.stat-bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--success));transition:width .5s}
+.activity-item{font-size:11px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--text-dim)}
+.activity-item b{color:var(--text)}
+.status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px}
+.status-dot.active{background:var(--success);box-shadow:0 0 6px var(--success)}
+.status-dot.warning{background:var(--warn);box-shadow:0 0 6px var(--warn)}
+.status-dot.critical{background:var(--danger);box-shadow:0 0 6px var(--danger)}
+
+/* === PROCESS TRACKER === */
+.process-tracker{position:fixed;bottom:16px;left:16px;width:370px;z-index:50;padding:14px 16px}
+.process-tracker h4{font-size:12px;font-weight:600;margin-bottom:10px;color:var(--accent)}
+.process-steps{display:flex;gap:0;position:relative}
+.process-steps::before{content:'';position:absolute;top:16px;left:20px;right:20px;height:2px;background:rgba(255,255,255,0.1)}
+.step{flex:1;text-align:center;position:relative;z-index:1}
+.step-icon{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.06);border:2px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;margin:0 auto 6px;font-size:14px;transition:all .3s}
+.step.completed .step-icon{background:rgba(0,191,165,0.2);border-color:var(--accent)}
+.step.active .step-icon{background:rgba(0,191,165,0.3);border-color:var(--accent);box-shadow:0 0 12px rgba(0,191,165,0.4);animation:pulse-ring 2s infinite}
+.step-label{font-size:9px;font-weight:600;color:var(--text-dim);line-height:1.2}
+.step-detail{font-size:8px;color:rgba(255,255,255,0.3);margin-top:2px}
+
+/* === DATA TABLE === */
+.data-table{position:fixed;bottom:16px;left:400px;right:332px;z-index:50;display:flex;flex-direction:column;max-height:220px;overflow:hidden}
+.table-tabs{display:flex;padding:6px 6px 0;gap:2px}
+.tab-btn{background:rgba(255,255,255,0.04);border:none;border-radius:8px 8px 0 0;padding:7px 14px;color:var(--text-dim);font-size:11px;font-weight:500;cursor:pointer;transition:all .2s}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{background:rgba(0,191,165,0.15);color:var(--accent)}
+.table-scroll{flex:1;overflow-y:auto;padding:0 6px 6px;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead{position:sticky;top:0;z-index:1}
+th{text-align:left;padding:6px 8px;font-weight:600;color:var(--accent);font-size:10px;text-transform:uppercase;letter-spacing:.4px;background:var(--glass);border-bottom:1px solid rgba(255,255,255,0.08)}
+td{padding:5px 8px;border-bottom:1px solid rgba(255,255,255,0.03);color:var(--text-dim)}
+tr:hover td{background:rgba(0,191,165,0.05);color:var(--text)}
+
+/* === SELECTION LABEL === */
+.sel-label{position:fixed;z-index:80;pointer-events:none;display:none;transform:translate(-50%,-100%);text-align:center}
+.sel-label-inner{background:var(--glass);backdrop-filter:blur(12px);border:1px solid var(--accent);border-radius:8px;padding:4px 12px;font-size:11px;font-weight:600;white-space:nowrap;color:var(--accent)}
+.sel-label-arrow{width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:6px solid var(--accent);margin:0 auto}
+
+/* === LOADING === */
+.loading-screen{position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#0a1628,#0d2137);display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .8s}
+.loading-screen.hidden{opacity:0;pointer-events:none}
+.loading-title{font-size:28px;font-weight:800;color:var(--accent);margin-bottom:8px}
+.loading-sub{font-size:13px;color:var(--text-dim);margin-bottom:24px}
+.loading-bar{width:240px;height:4px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden}
+.loading-fill{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--success));border-radius:2px;transition:width .3s}
+
+/* === SCROLLBAR === */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(0,191,165,0.3);border-radius:2px}
+
+/* === ANIMATIONS === */
+@keyframes pulse-ring{0%,100%{box-shadow:0 0 8px rgba(0,191,165,0.3)}50%{box-shadow:0 0 18px rgba(0,191,165,0.6)}}
+@keyframes fade-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fade-in .4s ease-out}
+
+/* === MOBILE === */
+@media(max-width:1100px){
+  .data-table{left:16px;right:16px;bottom:16px;max-height:160px}
+  .process-tracker{display:none}
+  .right-panel{width:260px}
+}
+@media(max-width:768px){
+  .kpi-container{flex-direction:row;overflow-x:auto;right:16px;gap:8px;padding-bottom:4px}
+  .kpi-card{min-width:150px;padding:10px 12px}
+  .kpi-value{font-size:18px}
+  .right-panel{top:auto;bottom:0;left:0;right:0;width:100%;height:45vh;border-radius:14px 14px 0 0;transform:translateY(100%);transition:transform .3s}
+  .right-panel.show-mobile{transform:translateY(0)}
+  .right-panel.hidden{transform:translateY(100%)}
+  .data-table{display:none}
+  .process-tracker{display:none}
+  .area-btns{display:none}
+  .search-box{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-screen" id="loadingScreen">
+  <div class="loading-title">🐟 AquaFarm Command</div>
+  <div class="loading-sub">Initializing 3D Farm Environment…</div>
+  <div class="loading-bar"><div class="loading-fill" id="loadingFill"></div></div>
+</div>
+
+<!-- TOP BAR -->
+<header class="top-bar glass">
+  <div class="top-bar-left">
+    <div class="logo">🐟 AquaFarm Command</div>
+    <div class="search-box"><input type="text" placeholder="Search ponds, species…" id="searchInput"></div>
+    <div class="area-btns" id="areaBtns">
+      <button class="area-btn active" data-area="overview">Overview</button>
+      <button class="area-btn" data-area="hatchery">Hatchery</button>
+      <button class="area-btn" data-area="nursery">Nursery</button>
+      <button class="area-btn" data-area="growout">Grow-Out</button>
+      <button class="area-btn" data-area="processing">Processing</button>
+    </div>
+  </div>
+  <div class="top-bar-right">
+    <button class="area-btn" id="dragModeBtn" title="Switch between Pan and Rotate mode for Left-Click drag">✋ Pan</button>
+    <div class="weather-wrap">
+      <button class="weather-btn" id="weatherBtn">☀️ Sunny</button>
+      <div class="weather-drop glass" id="weatherDrop">
+        <button data-weather="sunny">☀️ Sunny</button>
+        <button data-weather="rainy">🌧️ Monsoon</button>
+        <button data-weather="cloudy">☁️ Overcast</button>
+        <button data-weather="stormy">⛈️ Stormy</button>
+      </div>
+    </div>
+    <div class="clock" id="liveClock">00:00:00</div>
+    <div class="alerts-wrap" id="alertsWrap">
+      🔔<span class="badge">3</span>
+      <div class="alerts-drop glass" id="alertsDrop">
+        <div class="alert-item" data-pond="P-03" style="cursor:pointer" title="Click to view Pond P-03"><span>⚠️</span><span><b>Pond P-03</b> — pH dropping: 7.8→6.9. Check lime dosing.</span></div>
+        <div class="alert-item" data-building="B-02" style="cursor:pointer" title="Click to view Feed Storage"><span>✅</span><span><b>Feed delivery</b> — 2.5 tons received at Storage.</span></div>
+        <div class="alert-item" data-pond="P-07" style="cursor:pointer" title="Click to view Pond P-07"><span>🔧</span><span><b>Aerator P-07-A2</b> — maintenance due in 2 days.</span></div>
+        <div class="alert-item" data-pond="P-01" style="cursor:pointer" title="Click to view Pond P-01"><span>🌡️</span><span><b>Pond P-01</b> — temp rising: 29.8°C threshold.</span></div>
+        <div class="alert-item" data-building="B-05" style="cursor:pointer" title="Click to view Processing Shed"><span>✅</span><span><b>Harvest batch #47</b> — 12.5 tons processed.</span></div>
+      </div>
+    </div>
+    <button class="dn-toggle" id="dnToggle" title="Day/Night">☀️</button>
+    <div class="user-avatar" title="Admin">👤</div>
+  </div>
+</header>
+
+<!-- KPI CARDS -->
+<div class="kpi-container" id="kpiContainer">
+  <div class="kpi-card glass fade-in">
+    <div class="kpi-icon">🐟</div>
+    <div>
+      <div class="kpi-label">Total Fish Stock</div>
+      <div class="kpi-value" id="kpi1">284,500</div>
+      <div class="kpi-trend up">↑ 12.3% vs last month</div>
+    </div>
+  </div>
+  <div class="kpi-card glass fade-in" style="animation-delay:.1s">
+    <div class="kpi-icon">📊</div>
+    <div>
+      <div class="kpi-label">Feed Conversion Ratio</div>
+      <div class="kpi-value" id="kpi2">1.42</div>
+      <div class="kpi-trend down">↓ 0.08 improved</div>
+    </div>
+  </div>
+  <div class="kpi-card glass fade-in" style="animation-delay:.2s">
+    <div class="kpi-icon">💧</div>
+    <div>
+      <div class="kpi-label">Water Quality Index</div>
+      <div class="kpi-value" id="kpi3">94.2%</div>
+      <div class="kpi-trend up">↑ 2.1% vs yesterday</div>
+    </div>
+  </div>
+</div>
+
+<!-- RIGHT PANEL -->
+<div class="right-panel glass" id="rightPanel">
+  <div class="panel-header">
+    <h3 id="panelTitle">📍 Farm Overview</h3>
+    <button class="close-btn" id="closePanel">✕</button>
+  </div>
+  <div class="panel-content" id="panelContent"></div>
+</div>
+
+<!-- PROCESS TRACKER -->
+<div class="process-tracker glass fade-in">
+  <h4>🔄 Aquaculture Lifecycle</h4>
+  <div class="process-steps">
+    <div class="step completed" data-area="hatchery" style="cursor:pointer" title="Jump to Hatchery (Broodstock)"><div class="step-icon">🥚</div><div class="step-label">Broodstock</div><div class="step-detail">45 pairs</div></div>
+    <div class="step completed" data-area="hatchery" style="cursor:pointer" title="Jump to Hatchery (Spawning)"><div class="step-icon">🐣</div><div class="step-label">Spawning</div><div class="step-detail">3 batches</div></div>
+    <div class="step completed" data-area="nursery" style="cursor:pointer" title="Jump to Nursery"><div class="step-icon">🐟</div><div class="step-label">Nursery</div><div class="step-detail">28k fry</div></div>
+    <div class="step active" data-area="growout" style="cursor:pointer" title="Jump to Grow-Out"><div class="step-icon">📈</div><div class="step-label">Grow-Out</div><div class="step-detail">284k fish</div></div>
+    <div class="step" data-area="processing" style="cursor:pointer" title="Jump to Harvest / Processing"><div class="step-icon">🎣</div><div class="step-label">Harvest</div><div class="step-detail">Oct 22</div></div>
+    <div class="step" data-area="processing" style="cursor:pointer" title="Jump to Processing"><div class="step-icon">📦</div><div class="step-label">Process</div><div class="step-detail">12.5 tons</div></div>
+  </div>
+</div>
+
+<!-- DATA TABLE -->
+<div class="data-table glass fade-in">
+  <div class="table-tabs" id="tableTabs">
+    <button class="tab-btn active" data-tab="pondStatus">Pond Status</button>
+    <button class="tab-btn" data-tab="fishStock">Fish Stock</button>
+    <button class="tab-btn" data-tab="feedLog">Feed Log</button>
+    <button class="tab-btn" data-tab="waterQuality">Water Quality</button>
+  </div>
+  <div class="table-scroll" id="tableContent"></div>
+</div>
+
+<!-- SELECTION LABEL -->
+<div class="sel-label" id="selLabel"><div class="sel-label-inner" id="selLabelText"></div><div class="sel-label-arrow"></div></div>
+
+<!-- CANVAS -->
+<div id="canvas-container"></div>
+
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import*as THREE from'three';
+import{OrbitControls}from'three/addons/controls/OrbitControls.js';
+
+/* ============================================================
+   CONFIGURATION & DATA
+   ============================================================ */
+const ACCENT=0x00BFA5, EMBANKMENT=0x8D6E63, WALKWAY=0x9E9E9E, WATER_COL=0x1B5E4D,
+      GRASS=0x5BAA3C, GRASS2=0x4D9133, BUILDING_ROOF=0x6D4C41, PIPE_COL=0x1565C0;
+
+const pondData=[
+  {id:'P-01',x:-38,z:-34,w:16,d:13,species:'Nile Tilapia',stock:12500,temp:28.5,ph:7.2,dox:6.8,nh3:0.02,status:'active',area:'growout'},
+  {id:'P-02',x:-18,z:-34,w:16,d:13,species:'Vannamei Shrimp',stock:45000,temp:29.1,ph:8.1,dox:5.9,nh3:0.04,status:'active',area:'growout'},
+  {id:'P-03',x:2,z:-34,w:16,d:13,species:'Catfish',stock:9800,temp:28.8,ph:7.1,dox:7.0,nh3:0.01,status:'warning',area:'growout'},
+  {id:'P-04',x:22,z:-34,w:16,d:13,species:'Tilapia (Red)',stock:11200,temp:28.3,ph:7.3,dox:6.6,nh3:0.03,status:'active',area:'growout'},
+  {id:'P-05',x:-38,z:-16,w:16,d:13,species:'Pangasius',stock:8200,temp:28.2,ph:7.5,dox:6.2,nh3:0.05,status:'active',area:'nursery'},
+  {id:'P-06',x:-18,z:-16,w:16,d:13,species:'Tilapia Fry',stock:28000,temp:29.0,ph:7.0,dox:7.2,nh3:0.01,status:'active',area:'nursery'},
+  {id:'P-07',x:2,z:-16,w:16,d:13,species:'Shrimp PL',stock:62000,temp:29.3,ph:8.0,dox:5.7,nh3:0.06,status:'warning',area:'nursery'},
+  {id:'P-08',x:22,z:-16,w:16,d:13,species:'Catfish Fry',stock:15000,temp:28.7,ph:7.4,dox:6.3,nh3:0.02,status:'active',area:'nursery'},
+  {id:'P-09',x:-28,z:2,w:36,d:15,species:'Broodstock Tilapia',stock:450,temp:28.6,ph:7.2,dox:6.7,nh3:0.02,status:'active',area:'hatchery'},
+  {id:'P-10',x:12,z:2,w:14,d:15,species:'Broodstock Shrimp',stock:320,temp:29.4,ph:8.2,dox:5.8,nh3:0.03,status:'active',area:'hatchery'},
+  {id:'P-11',x:30,z:2,w:14,d:15,species:'Quarantine',stock:2400,temp:28.9,ph:7.1,dox:6.9,nh3:0.01,status:'active',area:'processing'},
+];
+
+const buildingData=[
+  {id:'B-01',name:'Main Office',x:48,z:-36,w:7,d:5,h:5,color:0xECEFF1,type:'office',area:'overview'},
+  {id:'B-02',name:'Feed Storage',x:-52,z:12,w:10,d:7,h:4.5,color:0xBCAAA4,type:'storage',area:'processing'},
+  {id:'B-03',name:'Pump House',x:0,z:24,w:6,d:5,h:4,color:0xB0BEC5,type:'pump',area:'hatchery'},
+  {id:'B-04',name:'Hatchery Lab',x:-52,z:-30,w:8,d:6,h:5,color:0xE0F2F1,type:'hatchery',area:'hatchery'},
+  {id:'B-05',name:'Processing Shed',x:48,z:14,w:9,d:7,h:4,color:0xCFD8DC,type:'processing',area:'processing'},
+  {id:'B-06',name:'Water Tower',x:42,z:28,w:3,d:3,h:11,color:0x78909C,type:'tower',area:'overview'},
+  {id:'B-07',name:'Guard House',x:0,z:-50,w:4,d:3,h:3.5,color:0xFFE0B2,type:'guard',area:'overview'},
+  {id:'B-08',name:'Generator Room',x:-52,z:-10,w:5,d:4,h:3,color:0x90A4AE,type:'generator',area:'processing'},
+];
+
+const areas={
+  overview:{pos:[75,65,85],target:[0,0,-5]},
+  hatchery:{pos:[-35,35,25],target:[-28,0,2]},
+  nursery:{pos:[-15,30,-5],target:[-8,0,-16]},
+  growout:{pos:[5,35,-25],target:[0,0,-34]},
+  processing:{pos:[50,30,20],target:[48,0,14]},
+};
+
+/* ============================================================
+   SCENE SETUP
+   ============================================================ */
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x87CEEB);
+scene.fog=new THREE.FogExp2(0x87CEEB,0.0025);
+
+const camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,0.5,600);
+camera.position.set(75,65,85);
+camera.lookAt(0,0,0);
+
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.2;
+document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+/* CONTROLS */
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true;
+controls.dampingFactor=0.08;
+controls.screenSpacePanning=false; // Ground panning along terrain
+controls.minDistance=15;
+controls.maxDistance=220;
+controls.maxPolarAngle=Math.PI/2.15;
+controls.enableZoom=true;
+controls.zoomSpeed=1.0; // Standard sensitivity: pinching outward zooms in, pinching inward zooms out
+controls.mouseButtons={LEFT:THREE.MOUSE.PAN,MIDDLE:THREE.MOUSE.DOLLY,RIGHT:THREE.MOUSE.ROTATE};
+controls.touches={ONE:THREE.TOUCH.PAN,TWO:THREE.TOUCH.DOLLY_PAN};
+
+// Track active pointers to prevent tap-to-select when releasing a two-finger pinch gesture
+const activePointers=new Set();
+let wasMultiTouch=false;
+
+renderer.domElement.addEventListener('pointerdown',e=>{
+  activePointers.add(e.pointerId);
+  cameraAnimating=false;
+  isFollowing=false;
+  if(activePointers.size>=2){
+    wasMultiTouch=true;
+  }
+},{capture:true});
+
+renderer.domElement.addEventListener('pointerup',e=>{
+  activePointers.delete(e.pointerId);
+},{capture:true});
+
+renderer.domElement.addEventListener('pointercancel',e=>{
+  activePointers.delete(e.pointerId);
+  if(activePointers.size===0)wasMultiTouch=false;
+},{capture:true});
+
+// Prevent right-click context menu so right-drag rotation works
+renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
+
+// Stop camera animation when user manually drags/rotates/zooms
+let isFollowing=false;
+controls.addEventListener('start',()=>{
+  cameraAnimating=false;
+  isFollowing=false;
+});
+
+// Drag Mode switcher (Pan vs Rotate for left click)
+let isPanMode=true;
+const dragModeBtn=document.getElementById('dragModeBtn');
+function updateDragMode(){
+  if(isPanMode){
+    controls.mouseButtons.LEFT=THREE.MOUSE.PAN;
+    controls.touches.ONE=THREE.TOUCH.PAN;
+    if(dragModeBtn){
+      dragModeBtn.textContent='✋ Pan';
+      dragModeBtn.title='Left-click pans map. Click to switch to Rotate mode.';
+      dragModeBtn.classList.remove('active');
+    }
+  }else{
+    controls.mouseButtons.LEFT=THREE.MOUSE.ROTATE;
+    controls.touches.ONE=THREE.TOUCH.ROTATE;
+    if(dragModeBtn){
+      dragModeBtn.textContent='🔄 Rotate';
+      dragModeBtn.title='Left-click rotates view. Click to switch to Pan mode.';
+      dragModeBtn.classList.add('active');
+    }
+  }
+}
+if(dragModeBtn){
+  dragModeBtn.addEventListener('click',e=>{
+    e.stopPropagation();
+    isPanMode=!isPanMode;
+    updateDragMode();
+  });
+}
+
+/* LIGHTING */
+const ambientLight=new THREE.AmbientLight(0xffffff,0.45);
+scene.add(ambientLight);
+
+const sunLight=new THREE.DirectionalLight(0xfff5e0,1.6);
+sunLight.position.set(50,80,30);
+sunLight.castShadow=true;
+sunLight.shadow.mapSize.set(2048,2048);
+sunLight.shadow.camera.left=-90;sunLight.shadow.camera.right=90;
+sunLight.shadow.camera.top=90;sunLight.shadow.camera.bottom=-90;
+sunLight.shadow.camera.near=1;sunLight.shadow.camera.far=250;
+sunLight.shadow.bias=-0.0005;
+scene.add(sunLight);
+scene.add(sunLight.target);
+
+const hemiLight=new THREE.HemisphereLight(0x87CEEB,0x4CAF50,0.3);
+scene.add(hemiLight);
+
+const clock=new THREE.Clock();
+
+/* ============================================================
+   SHARED MATERIALS
+   ============================================================ */
+const mat={
+  embankment:new THREE.MeshStandardMaterial({color:EMBANKMENT,roughness:1,flatShading:true}),
+  walkway:new THREE.MeshStandardMaterial({color:WALKWAY,roughness:0.9,flatShading:true}),
+  water:new THREE.MeshStandardMaterial({color:WATER_COL,transparent:true,opacity:0.72,roughness:0.2,metalness:0.05,flatShading:true}),
+  pondFloor:new THREE.MeshStandardMaterial({color:0x14332A,roughness:1,flatShading:true}),
+  grass:new THREE.MeshStandardMaterial({color:GRASS,roughness:1,flatShading:true}),
+  pipe:new THREE.MeshStandardMaterial({color:PIPE_COL,roughness:0.6,flatShading:true}),
+  skin:new THREE.MeshStandardMaterial({color:0xFFCC80,roughness:0.9,flatShading:true}),
+  roof:new THREE.MeshStandardMaterial({color:BUILDING_ROOF,roughness:1,flatShading:true}),
+};
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+function box(w,h,d,material){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);m.castShadow=true;m.receiveShadow=true;return m}
+function cyl(rt,rb,h,s,material){const m=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,s),material);m.castShadow=true;m.receiveShadow=true;return m}
+
+/* ============================================================
+   GROUND
+   ============================================================ */
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(400,400),new THREE.MeshStandardMaterial({color:GRASS,roughness:1,flatShading:true}));
+ground.rotation.x=-Math.PI/2;ground.position.y=-0.05;ground.receiveShadow=true;
+scene.add(ground);
+
+// Field patches (surrounding agricultural fields like in the image)
+const fieldColors=[0x6DBF45,0x5BAA3C,0x7BC856,0x4D9133,0x88D468];
+for(let i=0;i<25;i++){
+  const fw=15+Math.random()*25,fd=12+Math.random()*20;
+  const f=new THREE.Mesh(new THREE.PlaneGeometry(fw,fd),new THREE.MeshStandardMaterial({color:fieldColors[i%5],roughness:1,flatShading:true}));
+  f.rotation.x=-Math.PI/2;f.position.y=0.02;
+  const angle=Math.random()*Math.PI*2,dist=80+Math.random()*60;
+  f.position.x=Math.cos(angle)*dist;f.position.z=Math.sin(angle)*dist;
+  f.rotation.z=Math.random()*0.3;
+  scene.add(f);
+}
+
+/* ============================================================
+   PONDS
+   ============================================================ */
+const waterMeshes=[];
+const clickables=[];
+const pondGroups=[];
+const WALL_H=1.5,WALL_W=2.0;
+
+pondData.forEach(p=>{
+  const g=new THREE.Group();
+  g.userData={...p,clickable:true,objType:'pond'};
+
+  // 4 walls
+  const nw=box(p.w+WALL_W*2,WALL_H,WALL_W,mat.embankment);nw.position.set(0,WALL_H/2,-p.d/2-WALL_W/2);g.add(nw);
+  const sw=box(p.w+WALL_W*2,WALL_H,WALL_W,mat.embankment);sw.position.set(0,WALL_H/2,p.d/2+WALL_W/2);g.add(sw);
+  const ew=box(WALL_W,WALL_H,p.d,mat.embankment);ew.position.set(p.w/2+WALL_W/2,WALL_H/2,0);g.add(ew);
+  const ww=box(WALL_W,WALL_H,p.d,mat.embankment);ww.position.set(-p.w/2-WALL_W/2,WALL_H/2,0);g.add(ww);
+
+  // Walkway tops
+  const wkN=box(p.w+WALL_W*2+0.5,0.12,WALL_W+0.5,mat.walkway);wkN.position.set(0,WALL_H+0.06,-p.d/2-WALL_W/2);g.add(wkN);
+  const wkS=box(p.w+WALL_W*2+0.5,0.12,WALL_W+0.5,mat.walkway);wkS.position.set(0,WALL_H+0.06,p.d/2+WALL_W/2);g.add(wkS);
+  const wkE=box(WALL_W+0.5,0.12,p.d+0.5,mat.walkway);wkE.position.set(p.w/2+WALL_W/2,WALL_H+0.06,0);g.add(wkE);
+  const wkW=box(WALL_W+0.5,0.12,p.d+0.5,mat.walkway);wkW.position.set(-p.w/2-WALL_W/2,WALL_H+0.06,0);g.add(wkW);
+
+  // Water surface
+  const waterGeo=new THREE.PlaneGeometry(p.w-0.3,p.d-0.3,12,12);
+  const waterMesh=new THREE.Mesh(waterGeo,mat.water.clone());
+  waterMesh.rotation.x=-Math.PI/2;waterMesh.position.y=0.6;
+  waterMesh.receiveShadow=true;
+  g.add(waterMesh);
+  waterMeshes.push({mesh:waterMesh,ox:p.x,oz:p.z});
+
+  // Pond floor
+  const fl=new THREE.Mesh(new THREE.PlaneGeometry(p.w-0.3,p.d-0.3),mat.pondFloor);
+  fl.rotation.x=-Math.PI/2;fl.position.y=0.05;fl.receiveShadow=true;g.add(fl);
+
+  // Blue pipes along edges
+  const pipeGeo=new THREE.CylinderGeometry(0.12,0.12,p.w+WALL_W*2,6);
+  const pipeN=new THREE.Mesh(pipeGeo,mat.pipe);
+  pipeN.rotation.z=Math.PI/2;pipeN.position.set(0,WALL_H+0.25,-p.d/2-WALL_W/2);g.add(pipeN);
+
+  // Railing posts
+  for(let rx=-p.w/2;rx<=p.w/2;rx+=4){
+    const post=cyl(0.06,0.06,0.8,4,mat.pipe);
+    post.position.set(rx,WALL_H+0.4,-p.d/2-WALL_W/2);g.add(post);
+    const post2=cyl(0.06,0.06,0.8,4,mat.pipe);
+    post2.position.set(rx,WALL_H+0.4,p.d/2+WALL_W/2);g.add(post2);
+  }
+
+  g.position.set(p.x,0,p.z);
+  scene.add(g);
+  clickables.push(g);
+  pondGroups.push(g);
+});
+
+/* ============================================================
+   AERATORS
+   ============================================================ */
+const aerators=[];
+pondData.forEach((p,i)=>{
+  const count=p.w>20?3:2;
+  for(let a=0;a<count;a++){
+    const ag=new THREE.Group();
+    // Float
+    const fl=box(1.2,0.25,0.7,new THREE.MeshStandardMaterial({color:0x1565C0,roughness:0.7,flatShading:true}));
+    fl.position.y=0.65;ag.add(fl);
+    // Paddle wheel
+    const wheel=new THREE.Group();
+    for(let j=0;j<6;j++){
+      const angle=(j/6)*Math.PI*2;
+      const paddle=box(0.08,0.4,0.5,new THREE.MeshStandardMaterial({color:0xE0E0E0,roughness:0.8,flatShading:true}));
+      paddle.position.set(Math.cos(angle)*0.25,Math.sin(angle)*0.25,0);
+      paddle.rotation.z=angle;
+      wheel.add(paddle);
+    }
+    wheel.position.set(0,0.9,0);
+    ag.add(wheel);
+    // Spray particles
+    const sprayGeo=new THREE.BufferGeometry();
+    const sprayPos=new Float32Array(30*3);
+    for(let s=0;s<30;s++){sprayPos[s*3]=(Math.random()-0.5)*1.2;sprayPos[s*3+1]=0.8+Math.random()*0.6;sprayPos[s*3+2]=(Math.random()-0.5)*0.8;}
+    sprayGeo.setAttribute('position',new THREE.BufferAttribute(sprayPos,3));
+    const spray=new THREE.Points(sprayGeo,new THREE.PointsMaterial({color:0xE0F7FA,size:0.08,transparent:true,opacity:0.5}));
+    ag.add(spray);
+
+    const spacing=p.w/(count+1);
+    ag.position.set(p.x-p.w/2+spacing*(a+1),0,p.z+(Math.random()-0.5)*p.d*0.5);
+    ag.userData={clickable:true,objType:'aerator',pondId:p.id,name:`Aerator ${p.id}-A${a+1}`,speed:2+Math.random()*2};
+    scene.add(ag);
+    clickables.push(ag);
+    aerators.push({group:ag,wheel,spray,speed:2+Math.random()*2});
+  }
+});
+
+/* ============================================================
+   BUILDINGS
+   ============================================================ */
+buildingData.forEach(b=>{
+  const g=new THREE.Group();
+  g.userData={...b,clickable:true,objType:'building'};
+
+  const bMat=new THREE.MeshStandardMaterial({color:b.color,roughness:0.85,flatShading:true});
+  const body=box(b.w,b.h,b.d,bMat);body.position.y=b.h/2;g.add(body);
+
+  if(b.type==='tower'){
+    // Water tank on top
+    const tank=cyl(2,2,3,8,new THREE.MeshStandardMaterial({color:0x546E7A,roughness:0.7,flatShading:true}));
+    tank.position.y=b.h+1.5;g.add(tank);
+    // Legs
+    for(let l=0;l<4;l++){
+      const angle=(l/4)*Math.PI*2+Math.PI/4;
+      const leg=cyl(0.2,0.2,b.h,6,bMat);
+      leg.position.set(Math.cos(angle)*1.2,b.h/2,Math.sin(angle)*1.2);g.add(leg);
+    }
+  }else{
+    // Roof
+    const roofW=Math.max(b.w,b.d)*0.75;
+    const roofMesh=new THREE.Mesh(new THREE.ConeGeometry(roofW,b.h*0.35,4),mat.roof);
+    roofMesh.position.y=b.h+b.h*0.175;roofMesh.rotation.y=Math.PI/4;
+    roofMesh.castShadow=true;g.add(roofMesh);
+    // Door
+    const door=box(1,1.8,0.1,new THREE.MeshStandardMaterial({color:0x5D4037,flatShading:true}));
+    door.position.set(0,0.9,b.d/2+0.05);g.add(door);
+    // Windows
+    const winMat=new THREE.MeshStandardMaterial({color:0x81D4FA,emissive:0x81D4FA,emissiveIntensity:0.1,flatShading:true});
+    if(b.w>5){
+      const win=box(0.8,0.6,0.1,winMat);win.position.set(-1.5,b.h*0.6,b.d/2+0.05);g.add(win);
+      const win2=box(0.8,0.6,0.1,winMat);win2.position.set(1.5,b.h*0.6,b.d/2+0.05);g.add(win2);
+    }
+  }
+
+  g.position.set(b.x,0,b.z);
+  scene.add(g);
+  clickables.push(g);
+});
+
+/* ============================================================
+   TREES
+   ============================================================ */
+function createTree(x,z,s=1){
+  const g=new THREE.Group();
+  const trunk=cyl(0.2*s,0.3*s,2*s,5,new THREE.MeshStandardMaterial({color:0x5D4037,roughness:1,flatShading:true}));
+  trunk.position.y=s;g.add(trunk);
+  const cols=[0x2E7D32,0x388E3C,0x43A047];
+  for(let i=0;i<3;i++){
+    const foliage=new THREE.Mesh(new THREE.ConeGeometry((1.6-i*0.35)*s,1.4*s,6),
+      new THREE.MeshStandardMaterial({color:cols[i],roughness:1,flatShading:true}));
+    foliage.position.y=(2.2+i*0.9)*s;foliage.castShadow=true;g.add(foliage);
+  }
+  g.position.set(x,0,z);scene.add(g);return g;
+}
+
+function createBush(x,z,s=1){
+  const g=new THREE.Group();
+  for(let i=0;i<3;i++){
+    const sphere=new THREE.Mesh(new THREE.SphereGeometry((0.6+Math.random()*0.4)*s,5,4),
+      new THREE.MeshStandardMaterial({color:0x388E3C,roughness:1,flatShading:true}));
+    sphere.position.set((Math.random()-0.5)*s,0.5*s,(Math.random()-0.5)*s);
+    sphere.castShadow=true;g.add(sphere);
+  }
+  g.position.set(x,0,z);scene.add(g);return g;
+}
+
+// Tree positions (around perimeter like in image)
+const treePositions=[
+  [-60,-40],[-58,-25],[-60,-5],[-60,20],[-55,30],
+  [-45,-48],[-20,-48],[20,-48],[40,-48],
+  [55,-30],[58,-15],[55,5],[55,25],[50,35],
+  [-40,30],[-20,30],[10,30],[30,30],
+  [-65,0],[-65,-20],[60,-5],[60,15],
+  [-50,-45],[45,-45],[-30,32],[20,32],
+];
+const trees=[];
+treePositions.forEach(([x,z])=>{trees.push(createTree(x,z,0.8+Math.random()*0.6))});
+
+// Bushes along embankments
+const bushPositions=[
+  [-50,-42],[-50,-22],[-50,0],[-50,18],
+  [42,-42],[42,-22],[42,18],
+  [-30,-44],[0,-44],[20,-44],
+  [-10,22],[25,22],
+];
+bushPositions.forEach(([x,z])=>createBush(x,z,0.5+Math.random()*0.3));
+
+/* ============================================================
+   WORKERS (PEOPLE)
+   ============================================================ */
+function createWorker(shirtColor){
+  const g=new THREE.Group();
+  // Legs
+  const legMat=new THREE.MeshStandardMaterial({color:0x37474F,roughness:1,flatShading:true});
+  const legL=cyl(0.1,0.12,0.6,5,legMat);legL.position.set(-0.12,0.3,0);g.add(legL);
+  const legR=cyl(0.1,0.12,0.6,5,legMat);legR.position.set(0.12,0.3,0);g.add(legR);
+  g.userData.legL=legL;g.userData.legR=legR;
+  // Body
+  const bodyMat=new THREE.MeshStandardMaterial({color:shirtColor,roughness:0.9,flatShading:true});
+  const body=cyl(0.22,0.18,0.7,6,bodyMat);body.position.y=0.95;g.add(body);
+  // Arms
+  const armL=cyl(0.07,0.07,0.5,4,bodyMat);armL.position.set(-0.3,0.85,0);armL.rotation.z=0.2;g.add(armL);
+  const armR=cyl(0.07,0.07,0.5,4,bodyMat);armR.position.set(0.3,0.85,0);armR.rotation.z=-0.2;g.add(armR);
+  g.userData.armL=armL;g.userData.armR=armR;
+  // Head
+  const head=new THREE.Mesh(new THREE.SphereGeometry(0.18,6,5),mat.skin);head.position.y=1.45;g.add(head);
+  // Hat
+  const hat=cyl(0.28,0.28,0.08,6,new THREE.MeshStandardMaterial({color:0xFFF9C4,roughness:1,flatShading:true}));
+  hat.position.y=1.62;g.add(hat);
+  const hatTop=cyl(0.16,0.16,0.12,6,new THREE.MeshStandardMaterial({color:0xFFF9C4,roughness:1,flatShading:true}));
+  hatTop.position.y=1.7;g.add(hatTop);
+
+  return g;
+}
+
+const workerColors=[0x1E88E5,0xE53935,0x43A047,0xFB8C00,0x8E24AA,0x00ACC1,0xD81B60,0x3949AB];
+const workerPaths=[
+  [{x:-48,z:-42},{x:40,z:-42},{x:40,z:-26},{x:-48,z:-26}],
+  [{x:-48,z:-26},{x:40,z:-26},{x:40,z:-6},{x:-48,z:-6}],
+  [{x:-48,z:-6},{x:-48,z:22},{x:40,z:22},{x:40,z:-6}],
+  [{x:-48,z:-42},{x:-48,z:22}],
+  [{x:-8,z:-42},{x:-8,z:-6},{x:12,z:-6},{x:12,z:-42}],
+  [{x:24,z:-42},{x:24,z:22}],
+  [{x:-28,z:-42},{x:-28,z:-6},{x:-48,z:-6}],
+  [{x:40,z:-26},{x:48,z:-26},{x:48,z:14},{x:40,z:14}],
+];
+
+const workers=[];
+workerPaths.forEach((path,i)=>{
+  const w=createWorker(workerColors[i%workerColors.length]);
+  w.position.set(path[0].x,WALL_H+0.12,path[0].z);
+  w.userData.path=path;
+  w.userData.pathIdx=0;
+  w.userData.speed=1.5+Math.random()*1.5;
+  w.userData.clickable=true;
+  w.userData.objType='worker';
+  w.userData.name=['Anand','Priya','Ravi','Lakshmi','Kumar','Sita','Vijay','Meena'][i];
+  w.userData.role=['Pond Manager','Feed Technician','Water Analyst','Hatchery Chief','Pond Worker','Lab Technician','Harvest Lead','Quality Inspector'][i];
+  w.userData.task=['Checking aerators','Distributing feed','Sampling water','Monitoring fry','Cleaning nets','Running tests','Prep for harvest','Inspecting stock'][i];
+  scene.add(w);
+  clickables.push(w);
+  workers.push(w);
+});
+
+/* ============================================================
+   BOATS
+   ============================================================ */
+const boats=[];
+function createBoat(pondIdx){
+  const p=pondData[pondIdx];
+  const g=new THREE.Group();
+  g.userData={clickable:true,objType:'boat',pondId:p.id,name:`Boat ${p.id}`};
+  // Hull
+  const hullShape=new THREE.Shape();
+  hullShape.moveTo(-0.6,0);hullShape.lineTo(-0.5,-1.2);hullShape.lineTo(0,-1.6);
+  hullShape.lineTo(0.5,-1.2);hullShape.lineTo(0.6,0);hullShape.lineTo(-0.6,0);
+  const hullGeo=new THREE.ExtrudeGeometry(hullShape,{depth:0.3,bevelEnabled:false});
+  const hull=new THREE.Mesh(hullGeo,new THREE.MeshStandardMaterial({color:0x5D4037,roughness:0.9,flatShading:true}));
+  hull.rotation.x=-Math.PI/2;hull.position.y=0.15;g.add(hull);
+  // Oar
+  const oar=cyl(0.03,0.03,2.2,4,new THREE.MeshStandardMaterial({color:0x795548,flatShading:true}));
+  oar.rotation.z=0.4;oar.position.set(0.5,0.5,0);g.add(oar);
+
+  g.position.set(p.x,0.55,p.z);
+  g.userData.center={x:p.x,z:p.z};
+  g.userData.radius={x:p.w*0.3,z:p.d*0.3};
+  g.userData.angle=Math.random()*Math.PI*2;
+  g.userData.angSpeed=0.15+Math.random()*0.15;
+  scene.add(g);
+  clickables.push(g);
+  boats.push(g);
+}
+createBoat(0);createBoat(4);createBoat(8);
+
+/* ============================================================
+   TRUCKS
+   ============================================================ */
+function createTruck(x,z,color,rotation=0){
+  const g=new THREE.Group();
+  g.userData={clickable:true,objType:'vehicle',name:'Feed Truck'};
+  const cabMat=new THREE.MeshStandardMaterial({color,roughness:0.8,flatShading:true});
+  const cab=box(2,1.8,2.2,cabMat);cab.position.set(0,0.9,-1.2);g.add(cab);
+  const windshield=box(1.6,0.8,0.05,new THREE.MeshStandardMaterial({color:0x81D4FA,emissive:0x81D4FA,emissiveIntensity:0.05,flatShading:true}));
+  windshield.position.set(0,1.2,-2.32);g.add(windshield);
+  const bed=box(2,1,3,new THREE.MeshStandardMaterial({color:0x455A64,roughness:0.9,flatShading:true}));
+  bed.position.set(0,0.5,0.8);g.add(bed);
+  // Wheels
+  const wheelMat=new THREE.MeshStandardMaterial({color:0x212121,roughness:1,flatShading:true});
+  [[-0.95,-1.5],[0.95,-1.5],[-0.95,1.5],[0.95,1.5]].forEach(([wx,wz])=>{
+    const wheel=cyl(0.35,0.35,0.2,8,wheelMat);wheel.rotation.z=Math.PI/2;wheel.position.set(wx,0.35,wz);g.add(wheel);
+  });
+  g.position.set(x,0,z);g.rotation.y=rotation;
+  scene.add(g);clickables.push(g);
+}
+createTruck(55,-20,0xE53935,Math.PI/2);
+createTruck(-58,18,0x1565C0,-Math.PI/4);
+
+/* ============================================================
+   FISH JUMP SYSTEM
+   ============================================================ */
+const fishJumps=[];
+function spawnFishJump(){
+  const p=pondData[Math.floor(Math.random()*pondData.length)];
+  const fishGeo=new THREE.ConeGeometry(0.1,0.5,4);
+  const fishMat=new THREE.MeshStandardMaterial({color:0xB0BEC5,roughness:0.7,flatShading:true});
+  const fish=new THREE.Mesh(fishGeo,fishMat);
+  const sx=p.x+(Math.random()-0.5)*p.w*0.6;
+  const sz=p.z+(Math.random()-0.5)*p.d*0.6;
+  fish.position.set(sx,0.6,sz);
+  scene.add(fish);
+  fishJumps.push({mesh:fish,startY:0.6,time:0,duration:0.8+Math.random()*0.4,height:1+Math.random()*1.5,sx,sz});
+}
+
+/* ============================================================
+   RAIN SYSTEM
+   ============================================================ */
+const RAIN_COUNT=2000;
+const rainGeo=new THREE.BufferGeometry();
+const rainPos=new Float32Array(RAIN_COUNT*3);
+for(let i=0;i<RAIN_COUNT;i++){rainPos[i*3]=(Math.random()-0.5)*200;rainPos[i*3+1]=Math.random()*80;rainPos[i*3+2]=(Math.random()-0.5)*200;}
+rainGeo.setAttribute('position',new THREE.BufferAttribute(rainPos,3));
+const rainMat=new THREE.PointsMaterial({color:0xaabbee,size:0.15,transparent:true,opacity:0.4});
+const rain=new THREE.Points(rainGeo,rainMat);
+rain.visible=false;scene.add(rain);
+
+/* ============================================================
+   STARS (NIGHT)
+   ============================================================ */
+const STAR_COUNT=500;
+const starGeo=new THREE.BufferGeometry();
+const starPositions=new Float32Array(STAR_COUNT*3);
+for(let i=0;i<STAR_COUNT;i++){
+  const r=150+Math.random()*100;
+  const theta=Math.random()*Math.PI;
+  const phi=Math.random()*Math.PI*2;
+  starPositions[i*3]=r*Math.sin(theta)*Math.cos(phi);
+  starPositions[i*3+1]=r*Math.cos(theta)+40;
+  starPositions[i*3+2]=r*Math.sin(theta)*Math.sin(phi);
+}
+starGeo.setAttribute('position',new THREE.BufferAttribute(starPositions,3));
+const stars=new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xffffff,size:0.5,transparent:true,opacity:0}));
+scene.add(stars);
+
+/* ============================================================
+   SELECTION SYSTEM
+   ============================================================ */
+const selectionRing=new THREE.Mesh(
+  new THREE.TorusGeometry(3,0.12,8,32),
+  new THREE.MeshStandardMaterial({color:ACCENT,emissive:ACCENT,emissiveIntensity:0.6,transparent:true,opacity:0.8})
+);
+selectionRing.rotation.x=-Math.PI/2;selectionRing.visible=false;scene.add(selectionRing);
+
+let selectedObject=null;
+let cameraAnimating=false;
+let camTargetPos=new THREE.Vector3();
+let camTargetLook=new THREE.Vector3();
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let isNight=false;
+let currentWeather='sunny';
+let fishTimer=0;
+
+/* ============================================================
+   CLICK HANDLING
+   ============================================================ */
+const raycaster=new THREE.Raycaster();
+const pointer=new THREE.Vector2();
+let pointerDownBtn=-1;
+
+renderer.domElement.addEventListener('pointerdown',e=>{pointerDown.set(e.clientX,e.clientY);pointerDownBtn=e.button;});
+renderer.domElement.addEventListener('pointerup',e=>{
+  if(wasMultiTouch){
+    if(activePointers.size===0){
+      setTimeout(()=>{wasMultiTouch=false;},120);
+    }
+    return;
+  }
+  // Only handle left-click (button 0), ignore right-click used for rotation
+  if(e.button!==0||pointerDownBtn!==0)return;
+  if(Math.hypot(e.clientX-pointerDown.x,e.clientY-pointerDown.y)>8)return;
+  pointer.set((e.clientX/innerWidth)*2-1,-(e.clientY/innerHeight)*2+1);
+  raycaster.setFromCamera(pointer,camera);
+  const hits=raycaster.intersectObjects(clickables,true);
+  if(hits.length){
+    let obj=hits[0].object;
+    while(obj&&!obj.userData.clickable)obj=obj.parent;
+    if(obj)selectObject(obj);
+  }else{
+    deselectObject();
+  }
+});
+
+function selectObject(obj){
+  selectedObject=obj;
+  selectionRing.visible=true;
+  const wp=new THREE.Vector3();obj.getWorldPosition(wp);
+  const ringSize=obj.userData.objType==='pond'?Math.max(obj.userData.w||8,obj.userData.d||8)*0.55:2.5;
+  selectionRing.geometry.dispose();
+  selectionRing.geometry=new THREE.TorusGeometry(ringSize,0.12,8,32);
+
+  // Camera glide
+  const offset=new THREE.Vector3(15,18,15);
+  camTargetLook.copy(wp);
+  camTargetPos.copy(wp).add(offset);
+  cameraAnimating=true;
+  isFollowing=(obj.userData.objType==='worker'||obj.userData.objType==='boat');
+
+  // Update panel
+  updateDetailPanel(obj.userData);
+
+  // Show label
+  const label=document.getElementById('selLabel');
+  const text=document.getElementById('selLabelText');
+  text.textContent=obj.userData.name||obj.userData.id||'Object';
+  label.style.display='block';
+
+  // Right panel
+  const rp=document.getElementById('rightPanel');
+  rp.classList.remove('hidden');
+  if(innerWidth<=768)rp.classList.add('show-mobile');
+}
+
+function deselectObject(){
+  selectedObject=null;
+  selectionRing.visible=false;
+  isFollowing=false;
+  cameraAnimating=false;
+  document.getElementById('selLabel').style.display='none';
+  showFarmOverview();
+}
+
+/* ============================================================
+   DETAIL PANEL CONTENT
+   ============================================================ */
+function updateDetailPanel(data){
+  const title=document.getElementById('panelTitle');
+  const content=document.getElementById('panelContent');
+
+  if(data.objType==='pond'){
+    title.textContent=`🐟 ${data.id} — ${data.species}`;
+    const statusClass=data.status==='active'?'active':'warning';
+    const survivalRate=(92+Math.random()*6).toFixed(1);
+    const avgWeight=(data.species.includes('Shrimp')?(15+Math.random()*15):(300+Math.random()*200)).toFixed(0);
+    const biomass=((data.stock*avgWeight/1000)/1000).toFixed(1);
+    content.innerHTML=`
+      <div class="panel-section"><h4>Stock Info</h4>
+        <div class="stat-row"><span>Status</span><span><span class="status-dot ${statusClass}"></span>${data.status==='active'?'Active':'Warning'}</span></div>
+        <div class="stat-row"><span>Species</span><span>${data.species}</span></div>
+        <div class="stat-row"><span>Stock Count</span><span>${data.stock.toLocaleString()}</span></div>
+        <div class="stat-row"><span>Avg Weight</span><span>${avgWeight} g</span></div>
+        <div class="stat-row"><span>Total Biomass</span><span>${biomass} tons</span></div>
+        <div class="stat-row"><span>Survival Rate</span><span>${survivalRate}%</span></div>
+        <div class="stat-bar"><div class="stat-bar-fill" style="width:${survivalRate}%"></div></div>
+      </div>
+      <div class="panel-section"><h4>Water Parameters</h4>
+        <div class="stat-row"><span>Temperature</span><span>${data.temp}°C</span></div>
+        <div class="stat-row"><span>pH Level</span><span>${data.ph}</span></div>
+        <div class="stat-row"><span>Dissolved O₂</span><span>${data.dox} mg/L</span></div>
+        <div class="stat-row"><span>Ammonia (NH₃)</span><span>${data.nh3} ppm</span></div>
+        <div class="stat-row"><span>Turbidity</span><span>${(8+Math.random()*10).toFixed(0)} NTU</span></div>
+        <div class="stat-row"><span>Salinity</span><span>${data.species.includes('Shrimp')?(15+Math.random()*5).toFixed(1)+'‰':'Freshwater'}</span></div>
+      </div>
+      <div class="panel-section"><h4>Feed Schedule</h4>
+        <div class="activity-item"><b>06:00</b> — Floating pellets 32%, ${(data.stock*0.003).toFixed(0)} kg</div>
+        <div class="activity-item"><b>12:00</b> — Sinking pellets 28%, ${(data.stock*0.002).toFixed(0)} kg</div>
+        <div class="activity-item"><b>18:00</b> — Floating pellets 32%, ${(data.stock*0.003).toFixed(0)} kg</div>
+      </div>`;
+  }else if(data.objType==='building'){
+    title.textContent=`🏗️ ${data.name}`;
+    const infos={
+      office:{workers:4,capacity:'Admin Hub',status:'Operational',detail:'Central monitoring and administration'},
+      storage:{workers:2,capacity:'50 tons',status:'85% Full',detail:'Feed and supply storage facility'},
+      pump:{workers:1,capacity:'500 m³/hr',status:'Running',detail:'Water circulation and exchange'},
+      hatchery:{workers:3,capacity:'500k eggs',status:'Active Spawning',detail:'Broodstock management and spawning'},
+      processing:{workers:5,capacity:'20 tons/day',status:'Idle',detail:'Fish processing and cold storage'},
+      tower:{workers:0,capacity:'25,000 L',status:'92% Full',detail:'Emergency water reserve'},
+      guard:{workers:1,capacity:'24/7',status:'Manned',detail:'Security and access control'},
+      generator:{workers:0,capacity:'200 kW',status:'Standby',detail:'Backup power generation'},
+    };
+    const info=infos[data.type]||{workers:1,capacity:'-',status:'OK',detail:''};
+    content.innerHTML=`
+      <div class="panel-section"><h4>Building Info</h4>
+        <div class="stat-row"><span>Type</span><span>${data.type.charAt(0).toUpperCase()+data.type.slice(1)}</span></div>
+        <div class="stat-row"><span>Status</span><span><span class="status-dot active"></span>${info.status}</span></div>
+        <div class="stat-row"><span>Workers</span><span>${info.workers}</span></div>
+        <div class="stat-row"><span>Capacity</span><span>${info.capacity}</span></div>
+      </div>
+      <div class="panel-section"><h4>Details</h4>
+        <div class="activity-item">${info.detail}</div>
+      </div>`;
+  }else if(data.objType==='worker'){
+    title.textContent=`👤 ${data.name}`;
+    content.innerHTML=`
+      <div class="panel-section"><h4>Worker Profile</h4>
+        <div class="stat-row"><span>Name</span><span>${data.name}</span></div>
+        <div class="stat-row"><span>Role</span><span>${data.role}</span></div>
+        <div class="stat-row"><span>Current Task</span><span>${data.task}</span></div>
+        <div class="stat-row"><span>Shift</span><span>06:00 – 18:00</span></div>
+        <div class="stat-row"><span>Status</span><span><span class="status-dot active"></span>On Duty</span></div>
+      </div>`;
+  }else if(data.objType==='boat'){
+    title.textContent=`🚣 ${data.name}`;
+    content.innerHTML=`
+      <div class="panel-section"><h4>Boat Info</h4>
+        <div class="stat-row"><span>Assigned Pond</span><span>${data.pondId}</span></div>
+        <div class="stat-row"><span>Purpose</span><span>Feeding & Inspection</span></div>
+        <div class="stat-row"><span>Status</span><span><span class="status-dot active"></span>In Use</span></div>
+      </div>`;
+  }else if(data.objType==='vehicle'){
+    title.textContent=`🚛 ${data.name}`;
+    content.innerHTML=`
+      <div class="panel-section"><h4>Vehicle Info</h4>
+        <div class="stat-row"><span>Type</span><span>Delivery Truck</span></div>
+        <div class="stat-row"><span>Cargo</span><span>Feed – 2.5 tons</span></div>
+        <div class="stat-row"><span>Status</span><span><span class="status-dot active"></span>Parked</span></div>
+      </div>`;
+  }else if(data.objType==='aerator'){
+    title.textContent=`🌀 ${data.name}`;
+    content.innerHTML=`
+      <div class="panel-section"><h4>Aerator Telemetry</h4>
+        <div class="stat-row"><span>Assigned Pond</span><span>${data.pondId}</span></div>
+        <div class="stat-row"><span>Motor Status</span><span><span class="status-dot active"></span>Running</span></div>
+        <div class="stat-row"><span>Rotation Speed</span><span>105 RPM</span></div>
+        <div class="stat-row"><span>Power Rating</span><span>1.5 kW</span></div>
+        <div class="stat-row"><span>Oxygen Transfer</span><span>1.8 kg O₂/kWh</span></div>
+      </div>
+      <div class="panel-section"><h4>Controls</h4>
+        <div class="activity-item">Automated based on dissolved oxygen readings.</div>
+      </div>`;
+  }
+}
+
+function showFarmOverview(){
+  document.getElementById('panelTitle').textContent='📍 Farm Overview';
+  const totalStock=pondData.reduce((s,p)=>s+p.stock,0);
+  document.getElementById('panelContent').innerHTML=`
+    <div class="panel-section"><h4>Farm Status</h4>
+      <div class="stat-row"><span>Active Ponds</span><span>${pondData.length}</span></div>
+      <div class="stat-row"><span>Total Stock</span><span>${totalStock.toLocaleString()}</span></div>
+      <div class="stat-row"><span>Farm Area</span><span>4.2 hectares</span></div>
+      <div class="stat-row"><span>Workers On-Site</span><span>${workers.length}</span></div>
+      <div class="stat-row"><span>Aerators Running</span><span>${aerators.length}</span></div>
+      <div class="stat-row"><span>Boats Active</span><span>${boats.length}</span></div>
+    </div>
+    <div class="panel-section"><h4>Today's Activity</h4>
+      <div class="activity-item"><b>06:00</b> — Morning feed completed all ponds</div>
+      <div class="activity-item"><b>08:30</b> — Water sampling P-01 to P-08</div>
+      <div class="activity-item"><b>10:00</b> — Broodstock inspection complete</div>
+      <div class="activity-item"><b>11:30</b> — Feed delivery — 2.5 tons received</div>
+      <div class="activity-item"><b>12:00</b> — Midday feed in progress</div>
+      <div class="activity-item"><b>13:45</b> — Aerator maintenance P-07</div>
+    </div>
+    <div class="panel-section"><h4>Weekly Targets</h4>
+      <div class="stat-row"><span>Harvest Goal</span><span>15 tons</span></div>
+      <div class="stat-bar"><div class="stat-bar-fill" style="width:83%"></div></div>
+      <div class="stat-row" style="margin-top:6px"><span>Feed Budget</span><span>₹2.4L / ₹3L</span></div>
+      <div class="stat-bar"><div class="stat-bar-fill" style="width:80%"></div></div>
+    </div>`;
+}
+showFarmOverview();
+
+/* ============================================================
+   DATA TABLES
+   ============================================================ */
+const tableData={
+  pondStatus:()=>`<table><thead><tr><th>Pond</th><th>Species</th><th>Stock</th><th>Temp</th><th>pH</th><th>DO</th><th>Status</th></tr></thead><tbody>${pondData.map(p=>`<tr data-pond="${p.id}" style="cursor:pointer" title="Click to focus ${p.id}"><td><b>${p.id}</b></td><td>${p.species}</td><td>${p.stock.toLocaleString()}</td><td>${p.temp}°C</td><td>${p.ph}</td><td>${p.dox} mg/L</td><td><span class="status-dot ${p.status==='active'?'active':'warning'}"></span>${p.status}</td></tr>`).join('')}</tbody></table>`,
+
+  fishStock:()=>{
+    const species=[
+      {name:'Nile Tilapia',count:73700,avgW:420,growth:2.3,survival:96.2},
+      {name:'Vannamei Shrimp',count:107000,avgW:22,growth:0.8,survival:88.5},
+      {name:'Catfish',count:24800,avgW:380,growth:2.8,survival:94.1},
+      {name:'Pangasius',count:8200,avgW:550,growth:3.1,survival:92.8},
+      {name:'Red Tilapia',count:11200,avgW:410,growth:2.1,survival:95.5},
+      {name:'Broodstock',count:770,avgW:1200,growth:0.2,survival:99.1},
+    ];
+    return`<table><thead><tr><th>Species</th><th>Count</th><th>Avg Wt</th><th>Biomass</th><th>Growth</th><th>Survival</th></tr></thead><tbody>${species.map(s=>`<tr><td>${s.name}</td><td>${s.count.toLocaleString()}</td><td>${s.avgW}g</td><td>${(s.count*s.avgW/1e6).toFixed(1)} t</td><td>${s.growth} g/d</td><td>${s.survival}%</td></tr>`).join('')}</tbody></table>`;
+  },
+
+  feedLog:()=>{
+    const logs=[
+      {time:'06:00',pond:'P-01 to P-04',type:'Floating 32%',amount:'120 kg',method:'Auto Feeder',done:true},
+      {time:'06:30',pond:'P-05 to P-08',type:'Floating 28%',amount:'95 kg',method:'Auto Feeder',done:true},
+      {time:'07:00',pond:'P-09',type:'Broodstock Special',amount:'12 kg',method:'Manual',done:true},
+      {time:'12:00',pond:'P-01 to P-04',type:'Sinking 28%',amount:'80 kg',method:'Auto Feeder',done:true},
+      {time:'12:30',pond:'P-05 to P-08',type:'Sinking 24%',amount:'65 kg',method:'Manual',done:false},
+      {time:'18:00',pond:'All Grow-Out',type:'Floating 32%',amount:'130 kg',method:'Auto Feeder',done:false},
+    ];
+    return`<table><thead><tr><th>Time</th><th>Ponds</th><th>Feed Type</th><th>Amount</th><th>Method</th><th>✓</th></tr></thead><tbody>${logs.map(l=>`<tr><td>${l.time}</td><td>${l.pond}</td><td>${l.type}</td><td>${l.amount}</td><td>${l.method}</td><td>${l.done?'✅':'⏳'}</td></tr>`).join('')}</tbody></table>`;
+  },
+
+  waterQuality:()=>`<table><thead><tr><th>Pond</th><th>Temp</th><th>pH</th><th>DO</th><th>NH₃</th><th>Turb.</th><th>Alert</th></tr></thead><tbody>${pondData.map(p=>{
+    const turb=(8+Math.random()*12).toFixed(0);
+    const alert=p.status==='warning'?'⚠️':'✅';
+    return`<tr data-pond="${p.id}" style="cursor:pointer" title="Click to focus ${p.id}"><td><b>${p.id}</b></td><td>${p.temp}°C</td><td>${p.ph}</td><td>${p.dox}</td><td>${p.nh3}</td><td>${turb} NTU</td><td>${alert}</td></tr>`;
+  }).join('')}</tbody></table>`,
+};
+
+function renderTable(tab){
+  document.getElementById('tableContent').innerHTML=tableData[tab]();
+}
+renderTable('pondStatus');
+
+/* ============================================================
+   UI EVENT HANDLERS
+   ============================================================ */
+// Tabs
+document.getElementById('tableTabs').addEventListener('click',e=>{
+  if(!e.target.classList.contains('tab-btn'))return;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  e.target.classList.add('active');
+  renderTable(e.target.dataset.tab);
+});
+
+// Table row click to inspect pond
+document.getElementById('tableContent').addEventListener('click',e=>{
+  const tr=e.target.closest('tr[data-pond]');
+  if(!tr)return;
+  const pId=tr.dataset.pond;
+  const targetPond=pondGroups.find(g=>g.userData.id===pId);
+  if(targetPond)selectObject(targetPond);
+});
+
+// Area switcher
+document.getElementById('areaBtns').addEventListener('click',e=>{
+  const btn=e.target.closest('.area-btn');
+  if(!btn||!btn.dataset.area)return;
+  document.querySelectorAll('.area-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const area=areas[btn.dataset.area];
+  if(area){
+    deselectObject();
+    camTargetPos.set(...area.pos);
+    camTargetLook.set(...area.target);
+    cameraAnimating=true;
+    isFollowing=false;
+  }
+});
+
+// Process Tracker steps click to jump
+const procSteps=document.querySelector('.process-steps');
+if(procSteps){
+  procSteps.addEventListener('click',e=>{
+    const step=e.target.closest('.step');
+    if(!step||!step.dataset.area)return;
+    document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
+    step.classList.add('active');
+    const area=areas[step.dataset.area];
+    if(area){
+      deselectObject();
+      camTargetPos.set(...area.pos);
+      camTargetLook.set(...area.target);
+      cameraAnimating=true;
+      isFollowing=false;
+      document.querySelectorAll('.area-btn').forEach(b=>{
+        b.classList.toggle('active',b.dataset.area===step.dataset.area);
+      });
+    }
+  });
+}
+
+// Close panel
+document.getElementById('closePanel').addEventListener('click',()=>{
+  document.getElementById('rightPanel').classList.add('hidden');
+  if(innerWidth<=768)document.getElementById('rightPanel').classList.remove('show-mobile');
+  deselectObject();
+});
+
+// Weather
+const weatherBtn=document.getElementById('weatherBtn');
+const weatherDrop=document.getElementById('weatherDrop');
+weatherBtn.addEventListener('click',e=>{
+  e.stopPropagation();
+  weatherDrop.classList.toggle('open');
+  document.getElementById('alertsDrop').classList.remove('open');
+});
+weatherDrop.addEventListener('click',e=>{
+  const btn=e.target.closest('button');
+  if(!btn||!btn.dataset.weather)return;
+  setWeather(btn.dataset.weather);
+  weatherDrop.classList.remove('open');
+});
+
+// Alerts
+const alertsWrap=document.getElementById('alertsWrap');
+const alertsDrop=document.getElementById('alertsDrop');
+alertsWrap.addEventListener('click',e=>{
+  e.stopPropagation();
+  alertsDrop.classList.toggle('open');
+  weatherDrop.classList.remove('open');
+});
+alertsDrop.addEventListener('click',e=>{
+  const item=e.target.closest('.alert-item');
+  if(!item)return;
+  const pId=item.dataset.pond;
+  const bId=item.dataset.building;
+  if(pId){
+    const targetPond=pondGroups.find(g=>g.userData.id===pId);
+    if(targetPond)selectObject(targetPond);
+  }else if(bId){
+    const targetBldg=clickables.find(g=>g.userData.id===bId);
+    if(targetBldg)selectObject(targetBldg);
+  }
+  alertsDrop.classList.remove('open');
+});
+
+// Day/Night
+document.getElementById('dnToggle').addEventListener('click',()=>{
+  isNight=!isNight;
+  document.getElementById('dnToggle').textContent=isNight?'🌙':'☀️';
+});
+
+// Close dropdowns on outside click
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.weather-wrap'))document.getElementById('weatherDrop').classList.remove('open');
+  if(!e.target.closest('.alerts-wrap'))document.getElementById('alertsDrop').classList.remove('open');
+});
+
+// Search
+document.getElementById('searchInput').addEventListener('input',e=>{
+  const q=e.target.value.toLowerCase().trim();
+  if(!q){pondGroups.forEach(g=>{g.visible=true});return;}
+  pondGroups.forEach(g=>{
+    const d=g.userData;
+    g.visible=(d.id+d.species).toLowerCase().includes(q);
+  });
+});
+document.getElementById('searchInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+    const visible=pondGroups.filter(g=>g.visible);
+    if(visible.length>0)selectObject(visible[0]);
+  }
+});
+
+// Resize
+window.addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+
+/* ============================================================
+   WEATHER SYSTEM
+   ============================================================ */
+function setWeather(w){
+  currentWeather=w;
+  const labels={sunny:'☀️ Sunny',rainy:'🌧️ Monsoon',cloudy:'☁️ Overcast',stormy:'⛈️ Stormy'};
+  document.getElementById('weatherBtn').textContent=labels[w];
+  rain.visible=(w==='rainy'||w==='stormy');
+}
+
+/* ============================================================
+   LIVE CLOCK & KPI UPDATES
+   ============================================================ */
+function updateClock(){
+  const now=new Date();
+  document.getElementById('liveClock').textContent=now.toLocaleTimeString();
+}
+setInterval(updateClock,1000);
+updateClock();
+
+function updateKPIs(){
+  const fs=284500+Math.floor(Math.random()*800-300);
+  document.getElementById('kpi1').textContent=fs.toLocaleString();
+  document.getElementById('kpi2').textContent=(1.42+(Math.random()*0.06-0.03)).toFixed(2);
+  document.getElementById('kpi3').textContent=(94.2+(Math.random()*1.5-0.5)).toFixed(1)+'%';
+}
+setInterval(updateKPIs,5000);
+
+/* ============================================================
+   LOADING
+   ============================================================ */
+let loadProgress=0;
+const loadInterval=setInterval(()=>{
+  loadProgress+=Math.random()*20+10;
+  if(loadProgress>100)loadProgress=100;
+  document.getElementById('loadingFill').style.width=loadProgress+'%';
+  if(loadProgress>=100){
+    clearInterval(loadInterval);
+    setTimeout(()=>document.getElementById('loadingScreen').classList.add('hidden'),400);
+  }
+},200);
+
+/* ============================================================
+   MAIN ANIMATION LOOP
+   ============================================================ */
+function animate(){
+  requestAnimationFrame(animate);
+  const t=performance.now()*0.001;
+  const dt=Math.min(clock.getDelta(),0.05);
+
+  /* --- WATER RIPPLES --- */
+  waterMeshes.forEach(({mesh,ox,oz})=>{
+    const pos=mesh.geometry.attributes.position;
+    for(let i=0;i<pos.count;i++){
+      const x=pos.getX(i)+ox;
+      const z=pos.getZ(i)+oz;
+      const y=Math.sin(x*0.4+t*1.8)*0.04+Math.cos(z*0.35+t*1.4)*0.04+Math.sin((x+z)*0.2+t*2.2)*0.02;
+      pos.setY(i,y);
+    }
+    pos.needsUpdate=true;
+    mesh.geometry.computeVertexNormals();
+  });
+
+  /* --- AERATORS --- */
+  aerators.forEach(a=>{
+    a.wheel.rotation.x+=a.speed*dt;
+    // Spray particle jitter
+    const sp=a.spray.geometry.attributes.position;
+    for(let i=0;i<sp.count;i++){
+      sp.setY(i,0.8+Math.random()*0.6);
+      sp.setX(i,(Math.random()-0.5)*1.2);
+    }
+    sp.needsUpdate=true;
+  });
+
+  /* --- WORKERS --- */
+  workers.forEach(w=>{
+    const path=w.userData.path;
+    const idx=w.userData.pathIdx;
+    const target=path[idx];
+    const dx=target.x-w.position.x;
+    const dz=target.z-w.position.z;
+    const dist=Math.sqrt(dx*dx+dz*dz);
+    if(dist<0.5){
+      w.userData.pathIdx=(idx+1)%path.length;
+    }else{
+      const speed=w.userData.speed*dt;
+      w.position.x+=dx/dist*speed;
+      w.position.z+=dz/dist*speed;
+      w.rotation.y=Math.atan2(dx,dz);
+    }
+    // Walk animation
+    const walkPhase=t*w.userData.speed*2;
+    w.userData.legL.rotation.x=Math.sin(walkPhase)*0.4;
+    w.userData.legR.rotation.x=Math.sin(walkPhase+Math.PI)*0.4;
+    w.userData.armL.rotation.x=Math.sin(walkPhase+Math.PI)*0.3;
+    w.userData.armR.rotation.x=Math.sin(walkPhase)*0.3;
+    w.position.y=WALL_H+0.12+Math.abs(Math.sin(walkPhase))*0.05;
+  });
+
+  /* --- BOATS --- */
+  boats.forEach(b=>{
+    b.userData.angle+=b.userData.angSpeed*dt;
+    const a=b.userData.angle;
+    b.position.x=b.userData.center.x+Math.cos(a)*b.userData.radius.x;
+    b.position.z=b.userData.center.z+Math.sin(a)*b.userData.radius.z;
+    b.position.y=0.55+Math.sin(t*2)*0.03;
+    b.rotation.y=-a+Math.PI/2;
+  });
+
+  /* --- FISH JUMPS --- */
+  fishTimer+=dt;
+  if(fishTimer>1.5+Math.random()*2){fishTimer=0;spawnFishJump();}
+  for(let i=fishJumps.length-1;i>=0;i--){
+    const f=fishJumps[i];
+    f.time+=dt;
+    const progress=f.time/f.duration;
+    if(progress>=1){
+      scene.remove(f.mesh);f.mesh.geometry.dispose();
+      fishJumps.splice(i,1);continue;
+    }
+    const yOff=Math.sin(progress*Math.PI)*f.height;
+    f.mesh.position.y=f.startY+yOff;
+    f.mesh.rotation.z=progress*Math.PI*2;
+  }
+
+  /* --- SELECTION RING --- */
+  if(selectedObject&&selectionRing.visible){
+    const wp=new THREE.Vector3();
+    selectedObject.getWorldPosition(wp);
+    selectionRing.position.set(wp.x,0.15,wp.z);
+    selectionRing.material.emissiveIntensity=0.4+Math.sin(t*3)*0.3;
+  }
+
+  /* --- SELECTION LABEL POSITION --- */
+  if(selectedObject){
+    const wp=new THREE.Vector3();
+    selectedObject.getWorldPosition(wp);
+    wp.y+=selectedObject.userData.objType==='pond'?3:4;
+    wp.project(camera);
+    const x=(wp.x*0.5+0.5)*innerWidth;
+    const y=(-wp.y*0.5+0.5)*innerHeight;
+    const label=document.getElementById('selLabel');
+    label.style.left=x+'px';label.style.top=y+'px';
+  }
+
+  /* --- CAMERA ANIMATION & CONTROLS --- */
+  if(cameraAnimating){
+    camera.position.lerp(camTargetPos,0.06);
+    controls.target.lerp(camTargetLook,0.06);
+    controls.update();
+    if(camera.position.distanceTo(camTargetPos)<0.25&&controls.target.distanceTo(camTargetLook)<0.25){
+      camera.position.copy(camTargetPos);
+      controls.target.copy(camTargetLook);
+      cameraAnimating=false;
+    }
+  } else if(isFollowing&&selectedObject&&(selectedObject.userData.objType==='worker'||selectedObject.userData.objType==='boat')){
+    const wp=new THREE.Vector3();
+    selectedObject.getWorldPosition(wp);
+    const curOffset=new THREE.Vector3().subVectors(camera.position,controls.target);
+    controls.target.lerp(wp,0.06);
+    camera.position.copy(controls.target).add(curOffset);
+    controls.update();
+  } else {
+    controls.update();
+  }
+
+  /* --- DAY/NIGHT & WEATHER VISUALS --- */
+  let targetBg;
+  let targetSunIntensity=1.6;
+  let targetSunColor=new THREE.Color(0xfff5e0);
+
+  if(isNight){
+    targetBg=new THREE.Color(0x0a1628);
+    targetSunIntensity=0.15;
+    targetSunColor=new THREE.Color(0x4466aa);
+  } else {
+    if(currentWeather==='sunny'){
+      targetBg=new THREE.Color(0x87CEEB);
+      targetSunIntensity=1.6;
+      targetSunColor=new THREE.Color(0xfff5e0);
+    } else if(currentWeather==='rainy'){
+      targetBg=new THREE.Color(0x546E7A);
+      targetSunIntensity=0.9;
+      targetSunColor=new THREE.Color(0xCFD8DC);
+    } else if(currentWeather==='cloudy'){
+      targetBg=new THREE.Color(0x78909C);
+      targetSunIntensity=1.1;
+      targetSunColor=new THREE.Color(0xECEFF1);
+    } else if(currentWeather==='stormy'){
+      targetBg=new THREE.Color(0x263238);
+      targetSunIntensity=0.5;
+      targetSunColor=new THREE.Color(0x90A4AE);
+    }
+  }
+
+  scene.background.lerp(targetBg,0.03);
+  scene.fog.color.lerp(targetBg,0.03);
+  sunLight.intensity=THREE.MathUtils.lerp(sunLight.intensity,targetSunIntensity,0.03);
+  sunLight.color.lerp(targetSunColor,0.03);
+  ambientLight.intensity=THREE.MathUtils.lerp(ambientLight.intensity,isNight?0.15:currentWeather==='stormy'?0.2:0.45,0.03);
+  hemiLight.intensity=THREE.MathUtils.lerp(hemiLight.intensity,isNight?0.05:0.3,0.03);
+
+  stars.material.opacity=THREE.MathUtils.lerp(stars.material.opacity,isNight?0.75:0,0.03);
+  renderer.toneMappingExposure=THREE.MathUtils.lerp(renderer.toneMappingExposure,isNight?0.35:1.2,0.03);
+
+  /* --- RAIN --- */
+  if(rain.visible){
+    const rp=rain.geometry.attributes.position;
+    for(let i=0;i<RAIN_COUNT;i++){
+      let y=rp.getY(i);
+      y-=currentWeather==='stormy'?1.2:0.7;
+      if(y<0)y=60+Math.random()*20;
+      rp.setY(i,y);
+    }
+    rp.needsUpdate=true;
+    if(currentWeather==='stormy'&&Math.random()<0.003){
+      // Lightning flash
+      ambientLight.intensity=2;
+      setTimeout(()=>{ambientLight.intensity=isNight?0.15:0.45},100);
+    }
+  }
+
+  /* --- TREE SWAY --- */
+  trees.forEach((tree,i)=>{
+    const windStrength=currentWeather==='stormy'?0.04:currentWeather==='rainy'?0.02:0.008;
+    tree.rotation.z=Math.sin(t*0.8+i)*windStrength;
+    tree.rotation.x=Math.cos(t*0.6+i*0.5)*windStrength*0.5;
+  });
+
+  renderer.render(scene,camera);
+}
+
+animate();
+</script>
+</body>
+</html>
