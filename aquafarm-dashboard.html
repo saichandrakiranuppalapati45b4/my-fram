@@ -108,18 +108,41 @@ canvas{display:block;touch-action:none;user-select:none;-webkit-user-select:none
 .step-label{font-size:9px;font-weight:600;color:var(--text-dim);line-height:1.2}
 .step-detail{font-size:8px;color:rgba(255,255,255,0.3);margin-top:2px}
 
-/* === DATA TABLE === */
-.data-table{position:fixed;bottom:16px;left:400px;right:332px;z-index:50;display:flex;flex-direction:column;max-height:220px;overflow:hidden}
-.table-tabs{display:flex;padding:6px 6px 0;gap:2px}
-.tab-btn{background:rgba(255,255,255,0.04);border:none;border-radius:8px 8px 0 0;padding:7px 14px;color:var(--text-dim);font-size:11px;font-weight:500;cursor:pointer;transition:all .2s}
-.tab-btn:hover{color:var(--text)}
-.tab-btn.active{background:rgba(0,191,165,0.15);color:var(--accent)}
-.table-scroll{flex:1;overflow-y:auto;padding:0 6px 6px;touch-action:pan-y;-webkit-overflow-scrolling:touch}
-table{width:100%;border-collapse:collapse;font-size:11px}
-thead{position:sticky;top:0;z-index:1}
-th{text-align:left;padding:6px 8px;font-weight:600;color:var(--accent);font-size:10px;text-transform:uppercase;letter-spacing:.4px;background:var(--glass);border-bottom:1px solid rgba(255,255,255,0.08)}
-td{padding:5px 8px;border-bottom:1px solid rgba(255,255,255,0.03);color:var(--text-dim)}
-tr:hover td{background:rgba(0,191,165,0.05);color:var(--text)}
+/* === DATA TABLE REDESIGN === */
+.data-table{position:fixed;bottom:16px;left:400px;right:332px;z-index:50;display:flex;flex-direction:column;height:245px;max-height:245px;overflow:hidden;border:1px solid rgba(0,191,165,0.25);box-shadow:0 12px 36px rgba(0,0,0,0.5);transition:all .3s cubic-bezier(0.16,1,0.3,1)}
+.data-table.expanded{height:460px;max-height:460px;box-shadow:0 24px 64px rgba(0,0,0,0.7);border-color:var(--accent)}
+.data-table.minimized{height:44px;max-height:44px}
+.data-table.minimized .table-scroll{display:none}
+
+.table-header-bar{display:flex;align-items:center;justify-content:space-between;padding:5px 8px;background:rgba(0,12,24,0.45);border-bottom:1px solid rgba(255,255,255,0.08);gap:8px;flex-wrap:nowrap}
+.table-tabs{display:flex;gap:4px;overflow-x:auto;padding-bottom:1px}
+.tab-btn{background:rgba(255,255,255,0.04);border:1px solid transparent;border-radius:8px;padding:6px 12px;color:var(--text-dim);font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.tab-btn:hover{background:rgba(255,255,255,0.08);color:var(--text)}
+.tab-btn.active{background:rgba(0,191,165,0.18);border-color:var(--accent);color:var(--accent);box-shadow:0 0 10px rgba(0,191,165,0.25)}
+
+.table-toolbar-right{display:flex;align-items:center;gap:6px}
+.table-search-input{background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.12);border-radius:6px;padding:4px 8px;color:#fff;font-size:11px;outline:none;width:110px;transition:all .2s}
+.table-search-input:focus{width:150px;border-color:var(--accent)}
+.table-ctrl-btn{background:rgba(255,255,255,0.06);border:1px solid transparent;border-radius:6px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-size:12px;cursor:pointer;transition:all .2s}
+.table-ctrl-btn:hover{background:rgba(255,255,255,0.15);color:var(--accent);border-color:var(--accent)}
+
+.table-scroll{flex:1;overflow-y:auto;padding:0;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+.telemetry-table{width:100%;border-collapse:collapse;font-size:11px;text-align:left}
+.telemetry-table thead{position:sticky;top:0;z-index:10;background:rgba(6,18,34,0.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.telemetry-table th{padding:8px 10px;font-weight:700;color:var(--accent);font-size:10px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid rgba(0,191,165,0.25);white-space:nowrap}
+.telemetry-table td{padding:7px 10px;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--text-dim);vertical-align:middle;white-space:nowrap}
+.telemetry-table tbody tr{transition:background .15s}
+.telemetry-table tbody tr:nth-child(even){background:rgba(255,255,255,0.015)}
+.telemetry-table tbody tr:hover{background:rgba(0,191,165,0.08);cursor:pointer}
+.telemetry-table tbody tr:hover td{color:#fff}
+
+.dox-chip{display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border-radius:4px;font-weight:700;font-size:10px}
+.dox-chip.normal{background:rgba(105,240,174,0.15);color:var(--success);border:1px solid rgba(105,240,174,0.3)}
+.dox-chip.low{background:rgba(255,183,77,0.15);color:var(--warn);border:1px solid rgba(255,183,77,0.3)}
+
+.sector-chip{display:inline-block;padding:1px 6px;border-radius:4px;font-size:9px;font-weight:600;text-transform:uppercase;background:rgba(255,255,255,0.06);color:var(--text-dim)}
+.metric-bar-mini{width:50px;height:5px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:6px}
+.metric-bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--success))}
 
 /* === SELECTION LABEL === */
 .sel-label{position:fixed;z-index:80;pointer-events:none;display:none;transform:translate(-50%,-100%);text-align:center}
@@ -146,7 +169,8 @@ tr:hover td{background:rgba(0,191,165,0.05);color:var(--text)}
 
 /* === MOBILE === */
 @media(max-width:1100px){
-  .data-table{left:16px;right:16px;bottom:16px;max-height:160px}
+  .data-table{left:16px;right:16px;bottom:16px;height:200px;max-height:200px}
+  .data-table.expanded{height:360px;max-height:360px}
   .process-tracker{display:none}
   .right-panel{width:260px}
 }
@@ -283,13 +307,20 @@ tr:hover td{background:rgba(0,191,165,0.05);color:var(--text)}
   </div>
 </div>
 
-<!-- DATA TABLE -->
-<div class="data-table glass fade-in">
-  <div class="table-tabs" id="tableTabs">
-    <button class="tab-btn active" data-tab="pondStatus">Pond Status</button>
-    <button class="tab-btn" data-tab="fishStock">Fish Stock</button>
-    <button class="tab-btn" data-tab="feedLog">Feed Log</button>
-    <button class="tab-btn" data-tab="waterQuality">Water Quality</button>
+<!-- DATA TABLE (REDESIGNED COMMAND DOCK) -->
+<div class="data-table glass fade-in" id="dataDock">
+  <div class="table-header-bar">
+    <div class="table-tabs" id="tableTabs">
+      <button class="tab-btn active" data-tab="pondStatus">🐟 Pond Telemetry</button>
+      <button class="tab-btn" data-tab="fishStock">📊 Stock & Biomass</button>
+      <button class="tab-btn" data-tab="feedLog">🌾 Feed Schedules</button>
+      <button class="tab-btn" data-tab="waterQuality">💧 Water Chemistry</button>
+    </div>
+    <div class="table-toolbar-right">
+      <input type="text" id="tableQuickFilter" class="table-search-input" placeholder="🔍 Filter...">
+      <button class="table-ctrl-btn" id="btnToggleDockSize" title="Expand / Restore View">⛶</button>
+      <button class="table-ctrl-btn" id="btnMinimizeDock" title="Minimize Table">—</button>
+    </div>
   </div>
   <div class="table-scroll" id="tableContent"></div>
 </div>
@@ -1336,43 +1367,185 @@ showFarmOverview();
    DATA TABLES
    ============================================================ */
 const tableData={
-  pondStatus:()=>`<table><thead><tr><th>Pond</th><th>Species</th><th>Stock</th><th>Temp</th><th>pH</th><th>DO</th><th>Status</th></tr></thead><tbody>${pondData.map(p=>`<tr data-pond="${p.id}" style="cursor:pointer" title="Click to focus ${p.id}"><td><b>${p.id}</b></td><td>${p.species}</td><td>${p.stock.toLocaleString()}</td><td>${p.temp}°C</td><td>${p.ph}</td><td>${p.dox} mg/L</td><td><span class="status-dot ${p.status==='active'?'active':'warning'}"></span>${p.status}</td></tr>`).join('')}</tbody></table>`,
+  pondStatus:(query = '')=>{
+    const q = (query || '').toLowerCase();
+    const rows = pondData.filter(p => !q || p.id.toLowerCase().includes(q) || p.species.toLowerCase().includes(q) || (p.area || '').toLowerCase().includes(q));
+    
+    return `<table class="telemetry-table">
+      <thead>
+        <tr>
+          <th>Pond</th>
+          <th>Sector</th>
+          <th>Species</th>
+          <th>Stock Count</th>
+          <th>Water Temp</th>
+          <th>pH</th>
+          <th>Dissolved O₂</th>
+          <th>Aerator</th>
+          <th>Health</th>
+          <th style="text-align:center">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(p=>{
+          const isWarn = p.status === 'warning' || p.status === 'critical';
+          const doxClass = p.dox < 6.0 ? 'low' : 'normal';
+          const isAeratorActive = p.aeratorStatus !== 'off' && p.aeratorStatus !== 'idle';
+          return `<tr data-pond="${p.id}" title="Click to inspect ${p.id} in 3D">
+            <td><b style="color:var(--accent)">${p.id}</b></td>
+            <td><span class="sector-chip">${p.area || 'growout'}</span></td>
+            <td style="color:#fff;font-weight:500">${p.species}</td>
+            <td>${p.stock.toLocaleString()}</td>
+            <td>🌡️ ${p.temp}°C</td>
+            <td>${p.ph}</td>
+            <td><span class="dox-chip ${doxClass}">${p.dox} mg/L</span></td>
+            <td><span class="badge-tag ${isAeratorActive ? 'active' : 'warning'}">${isAeratorActive ? '🌀 Running' : '⏸️ Idle'}</span></td>
+            <td><span class="status-dot ${isWarn ? 'warning' : 'active'}"></span>${p.status}</td>
+            <td style="text-align:center">
+              <button class="area-btn" data-action="focus" data-pond="${p.id}" style="padding:2px 8px;font-size:10px">🎯 Inspect</button>
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+  },
 
-  fishStock:()=>{
+  fishStock:(query = '')=>{
     const species=[
-      {name:'Nile Tilapia',count:73700,avgW:420,growth:2.3,survival:96.2},
-      {name:'Vannamei Shrimp',count:107000,avgW:22,growth:0.8,survival:88.5},
-      {name:'Catfish',count:24800,avgW:380,growth:2.8,survival:94.1},
-      {name:'Pangasius',count:8200,avgW:550,growth:3.1,survival:92.8},
-      {name:'Red Tilapia',count:11200,avgW:410,growth:2.1,survival:95.5},
-      {name:'Broodstock',count:770,avgW:1200,growth:0.2,survival:99.1},
+      {name:'Nile Tilapia',count:73700,avgW:420,growth:2.3,survival:96.2,area:'Grow-Out'},
+      {name:'Vannamei Shrimp',count:107000,avgW:22,growth:0.8,survival:88.5,area:'Nursery / Grow-Out'},
+      {name:'Catfish',count:24800,avgW:380,growth:2.8,survival:94.1,area:'Grow-Out'},
+      {name:'Pangasius',count:8200,avgW:550,growth:3.1,survival:92.8,area:'Grow-Out'},
+      {name:'Red Tilapia',count:11200,avgW:410,growth:2.1,survival:95.5,area:'Grow-Out'},
+      {name:'Broodstock Pairs',count:770,avgW:1200,growth:0.2,survival:99.1,area:'Hatchery'},
     ];
-    return`<table><thead><tr><th>Species</th><th>Count</th><th>Avg Wt</th><th>Biomass</th><th>Growth</th><th>Survival</th></tr></thead><tbody>${species.map(s=>`<tr><td>${s.name}</td><td>${s.count.toLocaleString()}</td><td>${s.avgW}g</td><td>${(s.count*s.avgW/1e6).toFixed(1)} t</td><td>${s.growth} g/d</td><td>${s.survival}%</td></tr>`).join('')}</tbody></table>`;
+    const q = (query || '').toLowerCase();
+    const rows = species.filter(s => !q || s.name.toLowerCase().includes(q) || s.area.toLowerCase().includes(q));
+    const totalCount = rows.reduce((acc,s)=>acc+s.count,0);
+    const totalBiomass = rows.reduce((acc,s)=>acc+(s.count*s.avgW/1e6),0);
+
+    return `<table class="telemetry-table">
+      <thead>
+        <tr>
+          <th>Species Name</th>
+          <th>Sector</th>
+          <th>Total Stock</th>
+          <th>Avg Weight</th>
+          <th>Estimated Biomass</th>
+          <th>Daily Growth</th>
+          <th>Survival Rate</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(s=>`<tr>
+          <td style="color:#fff;font-weight:600">🐟 ${s.name}</td>
+          <td><span class="sector-chip">${s.area}</span></td>
+          <td><b>${s.count.toLocaleString()}</b></td>
+          <td>${s.avgW} g</td>
+          <td style="color:var(--accent)"><b>${(s.count*s.avgW/1e6).toFixed(1)} tons</b></td>
+          <td>+${s.growth} g/day</td>
+          <td>
+            <div class="metric-bar-mini"><div class="metric-bar-fill" style="width:${s.survival}%"></div></div>
+            <span>${s.survival}%</span>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+      <tfoot style="background:rgba(0,10,20,0.5);font-weight:700">
+        <tr>
+          <td colspan="2" style="color:var(--accent)">TOTAL SUMMARY</td>
+          <td>${totalCount.toLocaleString()}</td>
+          <td>—</td>
+          <td style="color:var(--accent)">${totalBiomass.toFixed(1)} tons</td>
+          <td colspan="2" style="color:var(--text-dim);font-size:10px">Updated via sampling telemetry</td>
+        </tr>
+      </tfoot>
+    </table>`;
   },
 
-  feedLog:()=>{
+  feedLog:(query = '')=>{
     const logs=[
-      {time:'06:00',pond:'P-01 to P-04',type:'Floating 32%',amount:'120 kg',method:'Auto Feeder',done:true},
-      {time:'06:30',pond:'P-05 to P-08',type:'Floating 28%',amount:'95 kg',method:'Auto Feeder',done:true},
-      {time:'07:00',pond:'P-09',type:'Broodstock Special',amount:'12 kg',method:'Manual',done:true},
-      {time:'12:00',pond:'P-01 to P-04',type:'Sinking 28%',amount:'80 kg',method:'Auto Feeder',done:true},
-      {time:'12:30',pond:'P-05 to P-08',type:'Sinking 24%',amount:'65 kg',method:'Manual',done:false},
-      {time:'18:00',pond:'All Grow-Out',type:'Floating 32%',amount:'130 kg',method:'Auto Feeder',done:false},
+      {time:'06:00',pond:'P-01 to P-04',type:'Floating Pellets 32%',amount:'120 kg',method:'Auto Feeder',done:true,operator:'Auto-Dispatch'},
+      {time:'06:30',pond:'P-05 to P-08',type:'Floating Pellets 28%',amount:'95 kg',method:'Auto Feeder',done:true,operator:'Auto-Dispatch'},
+      {time:'07:00',pond:'P-09',type:'Broodstock Special Enrichment',amount:'12 kg',method:'Manual Barge',done:true,operator:'R. Kumar'},
+      {time:'12:00',pond:'P-01 to P-04',type:'Sinking Pellets 28%',amount:'80 kg',method:'Auto Feeder',done:true,operator:'Auto-Dispatch'},
+      {time:'12:30',pond:'P-05 to P-08',type:'Sinking Pellets 24%',amount:'65 kg',method:'Manual Patrol',done:false,operator:'S. Chen'},
+      {time:'18:00',pond:'All Grow-Out Ponds',type:'Floating Pellets 32%',amount:'130 kg',method:'Auto Feeder',done:false,operator:'Scheduled'},
     ];
-    return`<table><thead><tr><th>Time</th><th>Ponds</th><th>Feed Type</th><th>Amount</th><th>Method</th><th>✓</th></tr></thead><tbody>${logs.map(l=>`<tr><td>${l.time}</td><td>${l.pond}</td><td>${l.type}</td><td>${l.amount}</td><td>${l.method}</td><td>${l.done?'✅':'⏳'}</td></tr>`).join('')}</tbody></table>`;
+    const q = (query || '').toLowerCase();
+    const rows = logs.filter(l => !q || l.pond.toLowerCase().includes(q) || l.type.toLowerCase().includes(q) || l.operator.toLowerCase().includes(q));
+
+    return `<table class="telemetry-table">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Assigned Ponds</th>
+          <th>Feed Formulation</th>
+          <th>Dispensed</th>
+          <th>Delivery Mode</th>
+          <th>Assigned Operator</th>
+          <th>Execution</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(l=>`<tr>
+          <td style="color:var(--accent);font-weight:700">🕒 ${l.time}</td>
+          <td><b>${l.pond}</b></td>
+          <td style="color:#fff">${l.type}</td>
+          <td><b>${l.amount}</b></td>
+          <td><span class="sector-chip">${l.method}</span></td>
+          <td style="color:var(--text-dim)">${l.operator}</td>
+          <td><span class="badge-tag ${l.done?'active':'warning'}">${l.done?'✅ Dispatched':'⏳ Pending'}</span></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
   },
 
-  waterQuality:()=>`<table><thead><tr><th>Pond</th><th>Temp</th><th>pH</th><th>DO</th><th>NH₃</th><th>Turb.</th><th>Alert</th></tr></thead><tbody>${pondData.map(p=>{
-    const turb=(8+Math.random()*12).toFixed(0);
-    const alert=p.status==='warning'?'⚠️':'✅';
-    return`<tr data-pond="${p.id}" style="cursor:pointer" title="Click to focus ${p.id}"><td><b>${p.id}</b></td><td>${p.temp}°C</td><td>${p.ph}</td><td>${p.dox}</td><td>${p.nh3}</td><td>${turb} NTU</td><td>${alert}</td></tr>`;
-  }).join('')}</tbody></table>`,
+  waterQuality:(query = '')=>{
+    const q = (query || '').toLowerCase();
+    const rows = pondData.filter(p => !q || p.id.toLowerCase().includes(q) || p.species.toLowerCase().includes(q));
+
+    return `<table class="telemetry-table">
+      <thead>
+        <tr>
+          <th>Pond ID</th>
+          <th>Temp (°C)</th>
+          <th>pH Level</th>
+          <th>DO (mg/L)</th>
+          <th>Ammonia (NH₃)</th>
+          <th>Turbidity</th>
+          <th>Water Health Rating</th>
+          <th style="text-align:center">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(p=>{
+          const turb=(8+Math.random()*12).toFixed(0);
+          const isWarn=p.status==='warning'||p.dox<6.0||p.nh3>0.04;
+          return `<tr data-pond="${p.id}" title="Click to inspect ${p.id}">
+            <td><b style="color:var(--accent)">${p.id}</b></td>
+            <td>${p.temp}°C</td>
+            <td><b>${p.ph}</b></td>
+            <td><span class="dox-chip ${p.dox<6.0?'low':'normal'}">${p.dox} mg/L</span></td>
+            <td style="color:${p.nh3>0.04?'var(--warn)':'var(--text-dim)'}">${p.nh3} ppm</td>
+            <td>${turb} NTU</td>
+            <td><span class="badge-tag ${isWarn?'warning':'active'}">${isWarn?'⚠️ Attention Needed':'✅ Optimal Balance'}</span></td>
+            <td style="text-align:center">
+              <button class="area-btn" data-action="focus" data-pond="${p.id}" style="padding:2px 8px;font-size:10px">🎯 Inspect</button>
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+  },
 };
 
 let currentActiveTab='pondStatus';
-function renderTable(tab){
+let currentTableQuery='';
+
+function renderTable(tab, query = currentTableQuery){
   if(tab)currentActiveTab=tab;
-  document.getElementById('tableContent').innerHTML=tableData[currentActiveTab]();
+  currentTableQuery=query;
+  document.getElementById('tableContent').innerHTML=tableData[currentActiveTab](currentTableQuery);
 }
 renderTable('pondStatus');
 
@@ -1381,10 +1554,42 @@ renderTable('pondStatus');
    ============================================================ */
 // Tabs
 document.getElementById('tableTabs').addEventListener('click',e=>{
-  if(!e.target.classList.contains('tab-btn'))return;
+  const btn = e.target.closest('.tab-btn');
+  if(!btn)return;
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  e.target.classList.add('active');
-  renderTable(e.target.dataset.tab);
+  btn.classList.add('active');
+  renderTable(btn.dataset.tab);
+});
+
+// Quick search filter in table dock
+document.getElementById('tableQuickFilter').addEventListener('input', e => {
+  renderTable(currentActiveTab, e.target.value);
+});
+
+// Size toggle: Expand / Restore
+const dataDock = document.getElementById('dataDock');
+const btnToggleDockSize = document.getElementById('btnToggleDockSize');
+const btnMinimizeDock = document.getElementById('btnMinimizeDock');
+
+btnToggleDockSize.addEventListener('click', () => {
+  if (dataDock.classList.contains('minimized')) {
+    dataDock.classList.remove('minimized');
+    btnMinimizeDock.textContent = '—';
+  }
+  dataDock.classList.toggle('expanded');
+  btnToggleDockSize.textContent = dataDock.classList.contains('expanded') ? '🗗' : '⛶';
+});
+
+// Minimize toggle
+btnMinimizeDock.addEventListener('click', () => {
+  dataDock.classList.toggle('minimized');
+  if (dataDock.classList.contains('minimized')) {
+    dataDock.classList.remove('expanded');
+    btnMinimizeDock.textContent = '▲';
+    btnToggleDockSize.textContent = '⛶';
+  } else {
+    btnMinimizeDock.textContent = '—';
+  }
 });
 
 // Table row click to inspect pond
