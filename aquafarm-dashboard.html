@@ -672,14 +672,6 @@ body.panel-collapsed .canvas-zoom-controls{right:20px}
           <input type="text" id="editSpecies" placeholder="e.g. Vannamei Shrimp" required>
         </div>
         <div class="form-row" style="margin:0">
-          <label>Stock Count</label>
-          <input type="number" id="editStock" value="15000" min="0" required>
-        </div>
-        <div class="form-row" style="margin:0">
-          <label>Number of Aerators</label>
-          <input type="number" id="editAeratorCount" value="2" min="0" max="8" required>
-        </div>
-        <div class="form-row" style="margin:0">
           <label>Water Temp (°C)</label>
           <input type="number" step="0.1" id="editTemp" value="28.5" required>
         </div>
@@ -3046,7 +3038,9 @@ document.getElementById('pondMgmtTableBody')?.addEventListener('click', async (e
       if (document.getElementById('editPondW')) document.getElementById('editPondW').value = p.w || (p.unitType === 'tank' ? 12 : 16);
       if (document.getElementById('editPondD')) document.getElementById('editPondD').value = p.d || (p.unitType === 'tank' ? 12 : 13);
       document.getElementById('editSpecies').value = p.species;
-      document.getElementById('editStock').value = p.stock;
+      if (document.getElementById('editStock')) {
+        document.getElementById('editStock').value = p.stock;
+      }
       if (document.getElementById('editAeratorCount')) {
         document.getElementById('editAeratorCount').value = typeof p.aeratorCount === 'number' ? p.aeratorCount : (p.unitType === 'tank' ? 1 : 2);
       }
@@ -3113,9 +3107,11 @@ document.getElementById('pondEditForm')?.addEventListener('submit', async (e) =>
   const w = parseFloat(document.getElementById('editPondW')?.value) || (unitType === 'tank' ? 12 : 16);
   const d = unitType === 'tank' ? w : (parseFloat(document.getElementById('editPondD')?.value) || 13);
   const species = document.getElementById('editSpecies').value.trim();
-  const stock = parseInt(document.getElementById('editStock').value, 10) || 10000;
-  const aeratorCountInp = document.getElementById('editAeratorCount');
-  const aeratorCount = aeratorCountInp ? Math.max(0, parseInt(aeratorCountInp.value, 10) || 0) : (unitType === 'tank' ? 1 : 2);
+  const existingPond = existingId ? pondData.find(item => item.id === existingId) : null;
+  const stock = existingPond ? existingPond.stock : 12000;
+  const aeratorCount = existingPond && typeof existingPond.aeratorCount === 'number'
+    ? existingPond.aeratorCount
+    : (unitType === 'tank' ? 1 : 2);
   const temp = parseFloat(document.getElementById('editTemp').value) || 28.5;
   const ph = parseFloat(document.getElementById('editPh').value) || 7.5;
   const dox = parseFloat(document.getElementById('editDox').value) || 6.5;
