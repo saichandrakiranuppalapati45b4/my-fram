@@ -749,9 +749,14 @@ body.panel-collapsed .canvas-zoom-controls{right:20px}
       <button class="area-btn" data-filter="Nursery">Nursery</button>
       <button class="area-btn" data-filter="Processing">Processing</button>
     </div>
-    <button type="button" class="area-btn active" id="btnShowAddWorker" style="display:flex;align-items:center;gap:6px;margin-left:auto">
-      <span>➕ Register Worker</span>
-    </button>
+    <div style="display:flex;gap:8px;margin-left:auto">
+      <button type="button" class="area-btn" id="btnClearAllWorkers" style="display:flex;align-items:center;gap:6px;color:var(--danger);border-color:rgba(255,82,82,0.35)" title="Delete all crew members from roster and database">
+        <span>🗑️ Delete All</span>
+      </button>
+      <button type="button" class="area-btn active" id="btnShowAddWorker" style="display:flex;align-items:center;gap:6px">
+        <span>➕ Register Worker</span>
+      </button>
+    </div>
   </div>
 
   <!-- Add / Edit Worker Drawer / Card (Hidden by default) -->
@@ -1686,6 +1691,186 @@ function createWorker(shirtColor){
   return g;
 }
 
+const defaultWorkersList = [
+  {
+    id: 'WRK-01',
+    name: 'Rajesh Kumar',
+    type: 'incharge',
+    role: 'Grow-Out Sector In-Charge',
+    sector: 'Grow-Out',
+    ponds: ['P-01', 'P-02', 'P-03', 'P-04'],
+    shift: 'Morning (06:00 - 14:00)',
+    status: 'on_duty',
+    clockIn: '05:50 AM',
+    phone: '+91 98450 11234',
+    radio: 'CH-04 (AquaNet)',
+    activeTask: 'Supervising aerator runtimes & 10:00 AM feed distribution',
+    avatarColor: '#00BFA5'
+  },
+  {
+    id: 'WRK-02',
+    name: 'Priya Sundaram',
+    type: 'incharge',
+    role: 'Hatchery & Lab In-Charge',
+    sector: 'Hatchery',
+    ponds: ['P-09', 'P-10'],
+    shift: 'Morning (06:00 - 14:00)',
+    status: 'on_duty',
+    clockIn: '06:10 AM',
+    phone: '+91 97120 44589',
+    radio: 'CH-02 (AquaNet)',
+    activeTask: 'Water quality lab tests & scheduled lime buffering protocol',
+    avatarColor: '#26A69A'
+  },
+  {
+    id: 'WRK-03',
+    name: 'Anand Patel',
+    type: 'worker',
+    role: 'Feed Distribution Operator',
+    sector: 'Grow-Out',
+    ponds: ['P-01', 'P-02', 'P-03', 'P-04'],
+    shift: 'Morning (06:00 - 14:00)',
+    status: 'on_duty',
+    clockIn: '06:30 AM',
+    phone: '+91 98230 77123',
+    radio: 'CH-04 (AquaNet)',
+    activeTask: 'Refilling automatic timer feed hoppers (450 kg pellet batch)',
+    avatarColor: '#42A5F5'
+  },
+  {
+    id: 'WRK-04',
+    name: 'Manoj Verma',
+    type: 'worker',
+    role: 'Larviculture & Broodstock Tech',
+    sector: 'Hatchery',
+    ponds: ['P-09', 'P-10'],
+    shift: 'Evening (14:00 - 22:00)',
+    status: 'off_duty',
+    clockIn: '--',
+    phone: '+91 94410 88231',
+    radio: 'CH-01 (AquaNet)',
+    activeTask: 'Preparing Artemia nauplii live feed culture for spawning tanks',
+    avatarColor: '#AB47BC'
+  },
+  {
+    id: 'WRK-05',
+    name: 'Venkatesh Rao',
+    type: 'worker',
+    role: 'Pond Bottom & Sludge Specialist',
+    sector: 'Nursery',
+    ponds: ['P-05', 'P-06', 'P-07', 'P-08'],
+    shift: 'Morning (06:00 - 14:00)',
+    status: 'on_break',
+    clockIn: '06:00 AM',
+    phone: '+91 96540 33219',
+    radio: 'CH-04 (AquaNet)',
+    activeTask: 'Black sludge core sampling near central drain siphon P-07',
+    avatarColor: '#FFA726'
+  },
+  {
+    id: 'WRK-06',
+    name: 'Kavitha Reddy',
+    type: 'incharge',
+    role: 'Cold Chain & Processing In-Charge',
+    sector: 'Processing',
+    ponds: ['P-04', 'B-05'],
+    shift: 'Morning (06:00 - 14:00)',
+    status: 'on_duty',
+    clockIn: '05:45 AM',
+    phone: '+91 99120 66543',
+    radio: 'CH-03 (AquaNet)',
+    activeTask: 'Sorting, grading & ice slurry prep for 12.5 ton harvest batch',
+    avatarColor: '#EC407A'
+  },
+  {
+    id: 'WRK-07',
+    name: 'Suresh Naidu',
+    type: 'helper',
+    role: 'Night Security & Patrol Helper',
+    sector: 'Farm-Wide',
+    ponds: ['P-01', 'P-02', 'P-03', 'P-04', 'P-05'],
+    shift: 'Night (22:00 - 06:00)',
+    status: 'off_duty',
+    clockIn: '--',
+    phone: '+91 93450 99881',
+    radio: 'CH-05 (AquaNet)',
+    activeTask: 'Perimeter dyke security log & 03:00 AM optical DO spot-checks',
+    avatarColor: '#7E57C2'
+  },
+  {
+    id: 'WRK-08',
+    name: 'Deepak Sen',
+    type: 'worker',
+    role: 'Hydraulic & Pump Mechanic',
+    sector: 'Grow-Out',
+    ponds: ['P-01', 'P-02', 'B-01', 'B-02'],
+    shift: 'Morning (06:00 - 14:00)',
+    status: 'on_duty',
+    clockIn: '06:20 AM',
+    phone: '+91 91230 55478',
+    radio: 'CH-04 (AquaNet)',
+    activeTask: 'Main sea water intake canal sluice gate maintenance',
+    avatarColor: '#29B6F6'
+  },
+  {
+    id: 'WRK-09',
+    name: 'Mohan Das',
+    type: 'helper',
+    role: 'Pond Embankment & Netting Helper',
+    sector: 'Grow-Out',
+    ponds: ['P-02', 'P-03'],
+    shift: 'Morning (06:00 - 14:00)',
+    status: 'on_duty',
+    clockIn: '06:00 AM',
+    phone: '+91 92340 77651',
+    radio: 'CH-04 (AquaNet)',
+    activeTask: 'Hauling feed bags to auto-dispensers & bird netting checks',
+    avatarColor: '#66BB6A'
+  }
+];
+
+// Load workers from localStorage or fallback to default
+let workersRoster = [];
+const savedWorkers = localStorage.getItem('aquafarm_workers_data');
+if (savedWorkers !== null) {
+  try {
+    workersRoster = JSON.parse(savedWorkers);
+    if (!Array.isArray(workersRoster)) workersRoster = [];
+  } catch (e) {
+    console.warn("Could not load workers from localStorage", e);
+    workersRoster = [];
+  }
+} else {
+  // First time initialization: initialize with defaultWorkersList
+  workersRoster = JSON.parse(JSON.stringify(defaultWorkersList));
+  try {
+    localStorage.setItem('aquafarm_workers_data', JSON.stringify(workersRoster));
+  } catch (e) {}
+}
+
+// Ensure all workers have valid types
+workersRoster.forEach(w => {
+  if (!w.type) {
+    const r = (w.role || '').toLowerCase();
+    if (r.includes('supervisor') || r.includes('in-charge') || r.includes('incharge') || r.includes('head') || r.includes('lead')) {
+      w.type = (r.includes('supervisor') || r.includes('in-charge') || r.includes('incharge')) ? 'incharge' : 'worker';
+    } else if (r.includes('helper') || r.includes('security') || r.includes('labor') || r.includes('assistant')) {
+      w.type = 'helper';
+    } else {
+      w.type = 'worker';
+    }
+  }
+});
+
+function saveWorkersRoster() {
+  try {
+    localStorage.setItem('aquafarm_workers_data', JSON.stringify(workersRoster));
+  } catch (e) {
+    console.warn("Could not save workers to localStorage", e);
+  }
+  rebuild3DWorkers();
+}
+
 const workerColors=[0x1E88E5,0xE53935,0x43A047,0xFB8C00,0x8E24AA,0x00ACC1,0xD81B60,0x3949AB];
 const workerPaths=[
   [{x:-48,z:-42},{x:40,z:-42},{x:40,z:-26},{x:-48,z:-26}],
@@ -1699,23 +1884,44 @@ const workerPaths=[
 ];
 
 const workers=[];
-workerPaths.forEach((path,i)=>{
-  const w=createWorker(workerColors[i%workerColors.length]);
-  w.position.set(path[0].x,WALL_H+0.12,path[0].z);
-  w.userData.path=path;
-  w.userData.pathIdx=0;
-  w.userData.speed=1.5+Math.random()*1.5;
-  w.userData.clickable=true;
-  w.userData.objType='worker';
-  w.userData.workerId='WRK-' + String(i + 1).padStart(2, '0');
-  w.userData.name=['Rajesh','Priya','Anand','Manoj','Venkatesh','Kavitha','Suresh','Deepak'][i];
-  w.userData.fullName=['Rajesh Kumar','Priya Sundaram','Anand Patel','Manoj Verma','Venkatesh Rao','Kavitha Reddy','Suresh Naidu','Deepak Sen'][i];
-  w.userData.role=['Lead Aeration Technician','Senior Water Quality Specialist','Feed Distribution Supervisor','Larviculture & Broodstock Tech','Pond Bottom Specialist','Cold Chain & Packing Lead','Night DO Patrol & Security','Pump Mechanic'][i];
-  w.userData.task=['Checking aerators & paddlewheels','DO & pH sensor calibration; lime dosing','Morning feed hopper refill','Artemia nauplii culture prep','Sludge core sampling','Ice slurry packing prep','Perimeter optical DO check','Sluice gate maintenance'][i];
-  scene.add(w);
-  clickables.push(w);
-  workers.push(w);
-});
+
+function rebuild3DWorkers() {
+  if (typeof scene === 'undefined') return;
+  if (typeof selectedObject !== 'undefined' && selectedObject && selectedObject.userData && selectedObject.userData.objType === 'worker') {
+    if (typeof deselectObject === 'function') deselectObject();
+  }
+  for (let i = workers.length - 1; i >= 0; i--) {
+    const w = workers[i];
+    scene.remove(w);
+    const cIdx = clickables.indexOf(w);
+    if (cIdx !== -1) clickables.splice(cIdx, 1);
+  }
+  workers.length = 0;
+
+  if (Array.isArray(workersRoster)) {
+    workersRoster.forEach((staff, i) => {
+      const path = workerPaths[i % workerPaths.length];
+      const colorHex = staff.avatarColor ? parseInt(staff.avatarColor.replace('#', '0x'), 16) : workerColors[i % workerColors.length];
+      const w = createWorker(isNaN(colorHex) ? workerColors[i % workerColors.length] : colorHex);
+      w.position.set(path[0].x, WALL_H + 0.12, path[0].z);
+      w.userData.path = path;
+      w.userData.pathIdx = 0;
+      w.userData.speed = 1.2 + (i % 3) * 0.4;
+      w.userData.clickable = true;
+      w.userData.objType = 'worker';
+      w.userData.workerId = staff.id;
+      w.userData.name = (staff.name || 'Worker').split(' ')[0];
+      w.userData.fullName = staff.name || 'Worker';
+      w.userData.type = staff.type || 'worker';
+      w.userData.role = staff.role || '';
+      w.userData.task = staff.activeTask || '';
+      scene.add(w);
+      clickables.push(w);
+      workers.push(w);
+    });
+  }
+}
+rebuild3DWorkers();
 
 /* ============================================================
    BOATS
@@ -3158,144 +3364,6 @@ document.getElementById('pondEditForm')?.addEventListener('submit', async (e) =>
 /* ============================================================
    WORKER MANAGEMENT HUB LOGIC (3 TYPES: IN-CHARGE, WORKER, HELPER)
    ============================================================ */
-const defaultWorkersList = [
-  {
-    id: 'WRK-01',
-    name: 'Rajesh Kumar',
-    type: 'incharge',
-    role: 'Grow-Out Sector In-Charge',
-    sector: 'Grow-Out',
-    ponds: ['P-01', 'P-02', 'P-03', 'P-04'],
-    shift: 'Morning (06:00 - 14:00)',
-    status: 'on_duty',
-    clockIn: '05:50 AM',
-    phone: '+91 98450 11234',
-    radio: 'CH-04 (AquaNet)',
-    activeTask: 'Supervising aerator runtimes & 10:00 AM feed distribution',
-    avatarColor: '#00BFA5'
-  },
-  {
-    id: 'WRK-02',
-    name: 'Priya Sundaram',
-    type: 'incharge',
-    role: 'Hatchery & Lab In-Charge',
-    sector: 'Hatchery',
-    ponds: ['P-09', 'P-10'],
-    shift: 'Morning (06:00 - 14:00)',
-    status: 'on_duty',
-    clockIn: '06:10 AM',
-    phone: '+91 97120 44589',
-    radio: 'CH-02 (AquaNet)',
-    activeTask: 'Water quality lab tests & scheduled lime buffering protocol',
-    avatarColor: '#26A69A'
-  },
-  {
-    id: 'WRK-03',
-    name: 'Anand Patel',
-    type: 'worker',
-    role: 'Feed Distribution Operator',
-    sector: 'Grow-Out',
-    ponds: ['P-01', 'P-02', 'P-03', 'P-04'],
-    shift: 'Morning (06:00 - 14:00)',
-    status: 'on_duty',
-    clockIn: '06:30 AM',
-    phone: '+91 98230 77123',
-    radio: 'CH-04 (AquaNet)',
-    activeTask: 'Refilling automatic timer feed hoppers (450 kg pellet batch)',
-    avatarColor: '#42A5F5'
-  },
-  {
-    id: 'WRK-04',
-    name: 'Manoj Verma',
-    type: 'worker',
-    role: 'Larviculture & Broodstock Tech',
-    sector: 'Hatchery',
-    ponds: ['P-09', 'P-10'],
-    shift: 'Evening (14:00 - 22:00)',
-    status: 'off_duty',
-    clockIn: '--',
-    phone: '+91 94410 88231',
-    radio: 'CH-01 (AquaNet)',
-    activeTask: 'Preparing Artemia nauplii live feed culture for spawning tanks',
-    avatarColor: '#AB47BC'
-  },
-  {
-    id: 'WRK-05',
-    name: 'Venkatesh Rao',
-    type: 'worker',
-    role: 'Pond Bottom & Sludge Specialist',
-    sector: 'Nursery',
-    ponds: ['P-05', 'P-06', 'P-07', 'P-08'],
-    shift: 'Morning (06:00 - 14:00)',
-    status: 'on_break',
-    clockIn: '06:00 AM',
-    phone: '+91 96540 33219',
-    radio: 'CH-04 (AquaNet)',
-    activeTask: 'Black sludge core sampling near central drain siphon P-07',
-    avatarColor: '#FFA726'
-  },
-  {
-    id: 'WRK-06',
-    name: 'Kavitha Reddy',
-    type: 'incharge',
-    role: 'Cold Chain & Processing In-Charge',
-    sector: 'Processing',
-    ponds: ['P-04', 'B-05'],
-    shift: 'Morning (06:00 - 14:00)',
-    status: 'on_duty',
-    clockIn: '05:45 AM',
-    phone: '+91 99120 66543',
-    radio: 'CH-03 (AquaNet)',
-    activeTask: 'Sorting, grading & ice slurry prep for 12.5 ton harvest batch',
-    avatarColor: '#EC407A'
-  },
-  {
-    id: 'WRK-07',
-    name: 'Suresh Naidu',
-    type: 'helper',
-    role: 'Night Security & Patrol Helper',
-    sector: 'Farm-Wide',
-    ponds: ['P-01', 'P-02', 'P-03', 'P-04', 'P-05'],
-    shift: 'Night (22:00 - 06:00)',
-    status: 'off_duty',
-    clockIn: '--',
-    phone: '+91 93450 99881',
-    radio: 'CH-05 (AquaNet)',
-    activeTask: 'Perimeter dyke security log & 03:00 AM optical DO spot-checks',
-    avatarColor: '#7E57C2'
-  },
-  {
-    id: 'WRK-08',
-    name: 'Deepak Sen',
-    type: 'worker',
-    role: 'Hydraulic & Pump Mechanic',
-    sector: 'Grow-Out',
-    ponds: ['P-01', 'P-02', 'B-01', 'B-02'],
-    shift: 'Morning (06:00 - 14:00)',
-    status: 'on_duty',
-    clockIn: '06:20 AM',
-    phone: '+91 91230 55478',
-    radio: 'CH-04 (AquaNet)',
-    activeTask: 'Main sea water intake canal sluice gate maintenance',
-    avatarColor: '#29B6F6'
-  },
-  {
-    id: 'WRK-09',
-    name: 'Mohan Das',
-    type: 'helper',
-    role: 'Pond Embankment & Netting Helper',
-    sector: 'Grow-Out',
-    ponds: ['P-02', 'P-03'],
-    shift: 'Morning (06:00 - 14:00)',
-    status: 'on_duty',
-    clockIn: '06:00 AM',
-    phone: '+91 92340 77651',
-    radio: 'CH-04 (AquaNet)',
-    activeTask: 'Hauling feed bags to auto-dispensers & bird netting checks',
-    avatarColor: '#66BB6A'
-  }
-];
-
 // Suggested roles by Worker Type
 const roleSuggestionsByType = {
   incharge: [
@@ -3337,58 +3405,6 @@ function updateRoleOptions(type, selectedRole = '') {
   html += `<option value="Custom">Custom Role (specify in task)</option>`;
   select.innerHTML = html;
 }
-
-// Load workers from localStorage or fallback to default
-let workersRoster = [];
-try {
-  const savedWorkers = localStorage.getItem('aquafarm_workers_data');
-  if (savedWorkers) {
-    workersRoster = JSON.parse(savedWorkers);
-  }
-} catch (e) {
-  console.warn("Could not load workers from localStorage", e);
-}
-if (!workersRoster || workersRoster.length === 0) {
-  workersRoster = defaultWorkersList;
-} else {
-  // Ensure all workers have a type (migration for older records)
-  workersRoster.forEach(w => {
-    if (!w.type) {
-      const r = (w.role || '').toLowerCase();
-      if (r.includes('supervisor') || r.includes('in-charge') || r.includes('incharge') || r.includes('head') || r.includes('lead')) {
-        w.type = (r.includes('supervisor') || r.includes('in-charge') || r.includes('incharge')) ? 'incharge' : 'worker';
-      } else if (r.includes('helper') || r.includes('security') || r.includes('labor') || r.includes('assistant')) {
-        w.type = 'helper';
-      } else {
-        w.type = 'worker';
-      }
-    }
-  });
-}
-
-function saveWorkersRoster() {
-  try {
-    localStorage.setItem('aquafarm_workers_data', JSON.stringify(workersRoster));
-  } catch (e) {
-    console.warn("Could not save workers to localStorage", e);
-  }
-  sync3DWorkersWithRoster();
-}
-
-function sync3DWorkersWithRoster() {
-  workers.forEach((wMesh, idx) => {
-    const staff = workersRoster[idx];
-    if (staff) {
-      wMesh.userData.workerId = staff.id;
-      wMesh.userData.name = staff.name.split(' ')[0];
-      wMesh.userData.fullName = staff.name;
-      wMesh.userData.type = staff.type;
-      wMesh.userData.role = staff.role;
-      wMesh.userData.task = staff.activeTask;
-    }
-  });
-}
-sync3DWorkersWithRoster();
 
 let workerCurrentFilter = 'all';
 
@@ -3476,7 +3492,23 @@ function renderWorkerTable() {
   });
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="9" style="padding:24px;text-align:center;color:var(--text-dim)">No crew members found matching current filter.</td></tr>`;
+    if (workersRoster.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="9" style="padding:36px 16px;text-align:center">
+            <div style="font-size:36px;margin-bottom:8px">👷</div>
+            <div style="font-weight:700;font-size:15px;color:#fff;margin-bottom:4px">No Crew Members Registered</div>
+            <div style="font-size:12px;color:var(--text-dim);margin-bottom:16px">All workers, in-charges, and helpers have been removed from the farm roster and database.</div>
+            <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+              <button type="button" class="area-btn restore-workers-btn" style="padding:7px 16px;font-size:12px;border-color:rgba(255,255,255,0.25)">🔄 Restore Default Crew</button>
+              <button type="button" class="area-btn register-first-worker-btn" style="padding:7px 16px;font-size:12px;background:var(--accent);color:#0a1628;font-weight:700">➕ Register Crew Member</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    } else {
+      tbody.innerHTML = `<tr><td colspan="9" style="padding:24px;text-align:center;color:var(--text-dim)">No crew members found matching current filter.</td></tr>`;
+    }
     return;
   }
 
@@ -3547,12 +3579,27 @@ function renderWorkerTable() {
 
 // Real-time Firestore sync for Workers roster
 if (typeof firebaseService !== 'undefined' && firebaseService.callbacks) {
+  let isInitialWorkersSnapshot = true;
   firebaseService.callbacks.onWorkersUpdate = (remoteWorkers) => {
     if (remoteWorkers && remoteWorkers.length > 0) {
       workersRoster = remoteWorkers;
       saveWorkersRoster();
       renderWorkerTable();
+    } else if (!isInitialWorkersSnapshot) {
+      // Remote deletion: all workers deleted from database
+      workersRoster = [];
+      saveWorkersRoster();
+      renderWorkerTable();
+    } else {
+      // First snapshot and remote is empty
+      const saved = localStorage.getItem('aquafarm_workers_data');
+      if (saved === '[]') {
+        workersRoster = [];
+        saveWorkersRoster();
+        renderWorkerTable();
+      }
     }
+    isInitialWorkersSnapshot = false;
   };
 }
 
@@ -3664,8 +3711,26 @@ document.getElementById('workerEditForm')?.addEventListener('submit', async (e) 
   }
 });
 
-// Table Click Handlers: Track, Edit, Toggle Duty, Assign Task, Delete, Pond Click
+// Table Click Handlers: Track, Edit, Toggle Duty, Assign Task, Delete, Pond Click, Restore Default, Register First
 document.getElementById('workerTableBody')?.addEventListener('click', async (e) => {
+  const restoreBtn = e.target.closest('.restore-workers-btn');
+  const registerFirstBtn = e.target.closest('.register-first-worker-btn');
+  if (restoreBtn) {
+    if (confirm("Restore the 9 default crew members (In-Charge, Workers, Helpers)?")) {
+      workersRoster = JSON.parse(JSON.stringify(defaultWorkersList));
+      saveWorkersRoster();
+      renderWorkerTable();
+      if (typeof firebaseService !== 'undefined' && firebaseService.isConnected && firebaseService.seedWorkers) {
+        firebaseService.seedWorkers(workersRoster).catch(err => console.warn(err));
+      }
+    }
+    return;
+  }
+  if (registerFirstBtn) {
+    document.getElementById('btnShowAddWorker')?.click();
+    return;
+  }
+
   const trackBtn = e.target.closest('.track-worker-btn');
   const editBtn = e.target.closest('.edit-worker-btn');
   const toggleBtn = e.target.closest('.toggle-duty-btn');
@@ -3768,20 +3833,7 @@ document.getElementById('workerTableBody')?.addEventListener('click', async (e) 
           }
         }
 
-        // 2. Remove 3D worker model from Three.js scene and arrays
-        const wIdx = workers.findIndex(w => w.userData.workerId === wId || (w.userData.fullName && w.userData.fullName.toLowerCase() === staff.name.toLowerCase()));
-        if (wIdx !== -1) {
-          const wMesh = workers[wIdx];
-          if (typeof selectedObject !== 'undefined' && selectedObject === wMesh) {
-            deselectObject();
-          }
-          scene.remove(wMesh);
-          const cIdx = clickables.indexOf(wMesh);
-          if (cIdx !== -1) clickables.splice(cIdx, 1);
-          workers.splice(wIdx, 1);
-        }
-
-        // 3. Remove from workers roster & localStorage
+        // 2. Remove from workers roster & localStorage & rebuild 3D scene
         workersRoster = workersRoster.filter(w => w.id !== wId);
         saveWorkersRoster();
         renderWorkerTable();
@@ -3795,6 +3847,29 @@ document.getElementById('workerTableBody')?.addEventListener('click', async (e) 
       selectObject(targetPond);
     }
   }
+});
+
+// Delete All Crew Members Handler
+document.getElementById('btnClearAllWorkers')?.addEventListener('click', async () => {
+  if (!workersRoster || workersRoster.length === 0) {
+    alert("Crew roster is already empty.");
+    return;
+  }
+  if (!confirm(`Are you sure you want to permanently delete ALL ${workersRoster.length} workers, in-charges, and helpers from the database and 3D farm? This cannot be undone.`)) {
+    return;
+  }
+  // Delete from Cloud Firestore if connected
+  if (typeof firebaseService !== 'undefined' && firebaseService.isConnected) {
+    try {
+      const deletePromises = workersRoster.map(w => firebaseService.deleteWorker(w.id).catch(err => console.warn(err)));
+      await Promise.all(deletePromises);
+    } catch (err) {
+      console.warn("[AquaFarm Firebase] Batch worker delete error:", err);
+    }
+  }
+  workersRoster = [];
+  saveWorkersRoster();
+  renderWorkerTable();
 });
 
 // Initialize Firebase with stored config (if any)
