@@ -626,12 +626,12 @@ body.panel-collapsed .canvas-zoom-controls{right:20px}
         <input type="hidden" id="unitTypeInput" value="pond">
       </div>
 
-      <!-- LOCATION & COORDINATES SECTION -->
+      <!-- LOCATION SECTION -->
       <div style="background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:12px;margin-bottom:12px">
         <div style="font-weight:700;font-size:12px;color:var(--accent);margin-bottom:8px;display:flex;align-items:center;gap:6px">
-          <span>📍 3D Farm Location & Coordinates</span>
+          <span>📍 Farm Location Placement</span>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">
           <div class="form-row" style="margin:0">
             <label>Assigned Sector <span style="color:var(--danger)">*</span></label>
             <select id="editPondSector">
@@ -644,40 +644,28 @@ body.panel-collapsed .canvas-zoom-controls{right:20px}
           <div class="form-row" style="margin:0">
             <label>Location Placement Zone</label>
             <select id="editPondZonePreset">
-              <option value="custom">⚙️ Custom Coordinates (Enter X, Z)</option>
-              <option value="growout_ne">Grow-Out East (X: 42, Z: -34)</option>
-              <option value="growout_nw">Grow-Out West (X: -58, Z: -34)</option>
-              <option value="nursery_ne">Nursery East (X: 42, Z: -16)</option>
-              <option value="nursery_nw">Nursery West (X: -58, Z: -16)</option>
-              <option value="hatchery_sw">Hatchery Wing (X: -28, Z: 24)</option>
-              <option value="hatchery_se">Hatchery Bay (X: -10, Z: 24)</option>
-              <option value="proc_dock">Processing Dock (X: 30, Z: 24)</option>
+              <option value="growout_ne">Grow-Out East (Zone A)</option>
+              <option value="growout_nw">Grow-Out West (Zone B)</option>
+              <option value="nursery_ne">Nursery East (Zone C)</option>
+              <option value="nursery_nw">Nursery West (Zone D)</option>
+              <option value="hatchery_sw">Hatchery Wing (Zone E)</option>
+              <option value="hatchery_se">Hatchery Bay (Zone F)</option>
+              <option value="proc_dock">Processing Dock (Zone G)</option>
             </select>
           </div>
-          <div class="form-row" style="margin:0">
-            <label>Location X Coordinate (m)</label>
-            <input type="number" id="editPondX" value="42" step="1" required>
-          </div>
-          <div class="form-row" style="margin:0">
-            <label>Location Z Coordinate (m)</label>
-            <input type="number" id="editPondZ" value="-34" step="1" required>
-          </div>
-          <div class="form-row" style="margin:0">
-            <label id="lblDimensionW">Width / Diameter (m)</label>
-            <input type="number" id="editPondW" value="16" min="6" max="50" step="1" required>
-          </div>
-          <div class="form-row" style="margin:0" id="rowDimensionD">
-            <label>Length / Depth (m)</label>
-            <input type="number" id="editPondD" value="13" min="6" max="50" step="1" required>
-          </div>
         </div>
+        <!-- Hidden 3D Coordinates & Dimensions -->
+        <input type="hidden" id="editPondX" value="42">
+        <input type="hidden" id="editPondZ" value="-34">
+        <input type="hidden" id="editPondW" value="16">
+        <input type="hidden" id="editPondD" value="13">
       </div>
 
       <!-- TELEMETRY & SPECIES SECTION -->
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:12px">
         <div class="form-row" style="margin:0">
-          <label>Unit ID (e.g. P-12, T-01) <span style="color:var(--danger)">*</span></label>
-          <input type="text" id="editPondIdInput" placeholder="P-12" required>
+          <label id="lblPondLocation">Pond Location <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="editPondIdInput" placeholder="e.g. Pond-01 or North-01" required>
         </div>
         <div class="form-row" style="margin:0">
           <label>Stocked Species / Batch <span style="color:var(--danger)">*</span></label>
@@ -686,6 +674,10 @@ body.panel-collapsed .canvas-zoom-controls{right:20px}
         <div class="form-row" style="margin:0">
           <label>Stock Count</label>
           <input type="number" id="editStock" value="15000" min="0" required>
+        </div>
+        <div class="form-row" style="margin:0">
+          <label>Number of Aerators</label>
+          <input type="number" id="editAeratorCount" value="2" min="0" max="8" required>
         </div>
         <div class="form-row" style="margin:0">
           <label>Water Temp (°C)</label>
@@ -698,23 +690,6 @@ body.panel-collapsed .canvas-zoom-controls{right:20px}
         <div class="form-row" style="margin:0">
           <label>Dissolved O₂ (mg/L)</label>
           <input type="number" step="0.1" id="editDox" value="6.5" required>
-        </div>
-        <div class="form-row" style="margin:0">
-          <label>Aerator System</label>
-          <select id="editAerator">
-            <option value="running">Running 🌀</option>
-            <option value="idle">Idle ⏸️</option>
-            <option value="off">Off ⏹️</option>
-          </select>
-        </div>
-        <div class="form-row" style="margin:0">
-          <label>Operational Status</label>
-          <select id="editStatus">
-            <option value="active">Active 🟢</option>
-            <option value="warning">Warning 🟡</option>
-            <option value="critical">Critical 🔴</option>
-            <option value="maintenance">Maintenance 🔧</option>
-          </select>
         </div>
       </div>
 
@@ -730,7 +705,7 @@ body.panel-collapsed .canvas-zoom-controls{right:20px}
     <table style="width:100%;border-collapse:collapse;font-size:12px;text-align:left">
       <thead style="background:rgba(0,0,0,0.5);position:sticky;top:0;z-index:2">
         <tr style="border-bottom:1px solid rgba(255,255,255,0.1)">
-          <th style="padding:10px">Unit</th>
+          <th style="padding:10px">Pond Location</th>
           <th style="padding:10px">Type</th>
           <th style="padding:10px">Location & Sector</th>
           <th style="padding:10px">Species</th>
@@ -994,6 +969,9 @@ if (!pondData || pondData.length === 0) {
   pondData.forEach(p => {
     if (!p.unitType) {
       p.unitType = (p.species && p.species.toLowerCase().includes('tank')) ? 'tank' : 'pond';
+    }
+    if (typeof p.aeratorCount !== 'number') {
+      p.aeratorCount = p.unitType === 'tank' ? 1 : (p.w > 20 ? 3 : 2);
     }
   });
 }
@@ -1449,28 +1427,33 @@ function buildSinglePondOrTank3D(p) {
     centerCol.position.y = (height + 0.4) / 2;
     g.add(centerCol);
 
-    // Center Tank Aqua Aerator (Scaled to fit tank)
-    const aeratorObj = createAquaAerator();
-    const ag = aeratorObj.group;
-    ag.scale.set(0.65, 0.65, 0.65);
-    ag.position.set(p.x, 0.3, p.z);
-    ag.userData = {
-      clickable: true,
-      objType: 'aerator',
-      pondId: p.id,
-      name: `Tank Aerator ${p.id}-A1`,
-      speed: 3.5 + Math.random() * 1.5
-    };
-    scene.add(ag);
-    clickables.push(ag);
-    aerators.push({
-      group: ag,
-      wheel: aeratorObj.wheel,
-      spray: aeratorObj.spray,
-      wheelPositions: aeratorObj.wheelPositions,
-      pondId: p.id,
-      speed: 3.5 + Math.random() * 1.5
-    });
+    // Center Tank Aqua Aerator(s) (Scaled to fit tank)
+    const tankAeratorCount = typeof p.aeratorCount === 'number' ? p.aeratorCount : 1;
+    for (let a = 0; a < tankAeratorCount; a++) {
+      const aeratorObj = createAquaAerator();
+      const ag = aeratorObj.group;
+      ag.scale.set(0.65, 0.65, 0.65);
+      const angle = (a / Math.max(1, tankAeratorCount)) * Math.PI * 2;
+      const offsetDist = tankAeratorCount > 1 ? (radius * 0.45) : 0;
+      ag.position.set(p.x + Math.cos(angle) * offsetDist, 0.3, p.z + Math.sin(angle) * offsetDist);
+      ag.userData = {
+        clickable: true,
+        objType: 'aerator',
+        pondId: p.id,
+        name: `Tank Aerator ${p.id}-A${a + 1}`,
+        speed: 3.5 + Math.random() * 1.5
+      };
+      scene.add(ag);
+      clickables.push(ag);
+      aerators.push({
+        group: ag,
+        wheel: aeratorObj.wheel,
+        spray: aeratorObj.spray,
+        wheelPositions: aeratorObj.wheelPositions,
+        pondId: p.id,
+        speed: 3.5 + Math.random() * 1.5
+      });
+    }
 
   } else {
     // 3D Rectangular Earthen Embankment Pond
@@ -1545,7 +1528,7 @@ function buildSinglePondOrTank3D(p) {
     }
 
     // Aqua Aerator paddlewheel unit(s)
-    const count = pw > 20 ? 3 : 2;
+    const count = typeof p.aeratorCount === 'number' ? p.aeratorCount : (pw > 20 ? 3 : 2);
     for (let a = 0; a < count; a++) {
       const aeratorObj = createAquaAerator();
       const ag = aeratorObj.group;
@@ -2808,32 +2791,35 @@ function setUnitTypeInForm(type) {
     }
   });
 
-  const lblW = document.getElementById('lblDimensionW');
-  const rowD = document.getElementById('rowDimensionD');
+  const lblLoc = document.getElementById('lblPondLocation');
+  if (lblLoc) {
+    lblLoc.innerHTML = (type === 'tank' ? 'Tank Location' : 'Pond Location') + ' <span style="color:var(--danger)">*</span>';
+  }
+
+  const aeratorInp = document.getElementById('editAeratorCount');
   const editId = document.getElementById('editPondId').value;
 
   if (type === 'tank') {
-    if (lblW) lblW.textContent = 'Tank Diameter (m)';
-    if (rowD) rowD.style.display = 'none';
+    if (aeratorInp && !editId) aeratorInp.value = '1';
     if (!editId) {
       const nextTankNum = pondData.filter(p => p.unitType === 'tank').length + 1;
       document.getElementById('editPondIdInput').value = 'T-' + String(nextTankNum).padStart(2, '0');
       document.getElementById('editSpecies').value = 'Broodstock Shrimp Tank';
-      document.getElementById('editPondW').value = '12';
+      if (document.getElementById('editPondW')) document.getElementById('editPondW').value = '12';
+      if (document.getElementById('editPondD')) document.getElementById('editPondD').value = '12';
       document.getElementById('editPondSector').value = 'hatchery';
       document.getElementById('editPondZonePreset').value = 'hatchery_sw';
       document.getElementById('editPondX').value = '-28';
       document.getElementById('editPondZ').value = '24';
     }
   } else {
-    if (lblW) lblW.textContent = 'Pond Width (m)';
-    if (rowD) rowD.style.display = 'block';
+    if (aeratorInp && !editId) aeratorInp.value = '2';
     if (!editId) {
       const nextPondNum = pondData.filter(p => p.unitType !== 'tank').length + 1;
       document.getElementById('editPondIdInput').value = 'P-' + String(nextPondNum).padStart(2, '0');
       document.getElementById('editSpecies').value = 'Vannamei Shrimp';
-      document.getElementById('editPondW').value = '16';
-      document.getElementById('editPondD').value = '13';
+      if (document.getElementById('editPondW')) document.getElementById('editPondW').value = '16';
+      if (document.getElementById('editPondD')) document.getElementById('editPondD').value = '13';
       document.getElementById('editPondSector').value = 'growout';
       document.getElementById('editPondZonePreset').value = 'growout_ne';
       document.getElementById('editPondX').value = '42';
@@ -2853,11 +2839,24 @@ document.getElementById('unitTypeOptions')?.addEventListener('click', (e) => {
 // Location Preset Zone Change Listener
 document.getElementById('editPondZonePreset')?.addEventListener('change', (e) => {
   const zoneKey = e.target.value;
-  if (zoneKey !== 'custom' && zonePresets[zoneKey]) {
+  if (zonePresets[zoneKey]) {
     const z = zonePresets[zoneKey];
     document.getElementById('editPondX').value = z.x;
     document.getElementById('editPondZ').value = z.z;
     document.getElementById('editPondSector').value = z.area;
+  }
+});
+
+// Location Sector Change Listener (Syncs matching zone)
+document.getElementById('editPondSector')?.addEventListener('change', (e) => {
+  const sector = e.target.value;
+  const matchingKey = Object.keys(zonePresets).find(k => zonePresets[k].area === sector);
+  if (matchingKey) {
+    const zp = document.getElementById('editPondZonePreset');
+    if (zp) zp.value = matchingKey;
+    const z = zonePresets[matchingKey];
+    document.getElementById('editPondX').value = z.x;
+    document.getElementById('editPondZ').value = z.z;
   }
 });
 
@@ -2917,9 +2916,10 @@ function renderPondMgmtTable() {
         <td style="padding:8px 10px">${p.temp}°C</td>
         <td style="padding:8px 10px">${p.ph}</td>
         <td style="padding:8px 10px;font-weight:600;color:${p.dox < 6.0 ? 'var(--warn)' : 'var(--text)'}">${p.dox} mg/L</td>
-        <td style="padding:8px 10px">
-          <button class="area-btn toggle-aerator-btn ${aeratorActive ? 'active' : ''}" data-pond-id="${p.id}" style="padding:3px 8px;font-size:10px" title="Toggle Aerator">
-            ${aeratorActive ? '🌀 On' : '⏸️ Off'}
+        <td style="padding:8px 10px;white-space:nowrap">
+          <div style="font-weight:600;font-size:11px;color:#fff">${p.aeratorCount !== undefined ? p.aeratorCount : (isTank ? 1 : 2)} Aerators</div>
+          <button class="area-btn toggle-aerator-btn ${aeratorActive ? 'active' : ''}" data-pond-id="${p.id}" style="padding:2px 6px;font-size:9px;margin-top:2px" title="Toggle Aerators">
+            ${aeratorActive ? '🌀 Running' : '⏸️ Off'}
           </button>
         </td>
         <td style="padding:8px 10px"><span class="badge-tag ${isWarning ? 'warning' : 'active'}">${p.status}</span></td>
@@ -2999,18 +2999,22 @@ document.getElementById('pondMgmtTableBody')?.addEventListener('click', async (e
       
       setUnitTypeInForm(p.unitType || 'pond');
       document.getElementById('editPondSector').value = p.area || 'growout';
-      document.getElementById('editPondZonePreset').value = 'custom';
+      if (document.getElementById('editPondZonePreset')) {
+        const matchingZone = Object.keys(zonePresets).find(k => zonePresets[k].x === p.x && zonePresets[k].z === p.z) || 'growout_ne';
+        document.getElementById('editPondZonePreset').value = matchingZone;
+      }
       document.getElementById('editPondX').value = p.x;
       document.getElementById('editPondZ').value = p.z;
-      document.getElementById('editPondW').value = p.w || 16;
-      document.getElementById('editPondD').value = p.d || 13;
+      if (document.getElementById('editPondW')) document.getElementById('editPondW').value = p.w || (p.unitType === 'tank' ? 12 : 16);
+      if (document.getElementById('editPondD')) document.getElementById('editPondD').value = p.d || (p.unitType === 'tank' ? 12 : 13);
       document.getElementById('editSpecies').value = p.species;
       document.getElementById('editStock').value = p.stock;
+      if (document.getElementById('editAeratorCount')) {
+        document.getElementById('editAeratorCount').value = typeof p.aeratorCount === 'number' ? p.aeratorCount : (p.unitType === 'tank' ? 1 : 2);
+      }
       document.getElementById('editTemp').value = p.temp;
       document.getElementById('editPh').value = p.ph;
       document.getElementById('editDox').value = p.dox;
-      document.getElementById('editStatus').value = p.status;
-      document.getElementById('editAerator').value = p.aeratorStatus || 'running';
 
       const card = document.getElementById('pondEditCard');
       card.style.display = 'block';
@@ -3059,22 +3063,25 @@ document.getElementById('pondEditForm')?.addEventListener('submit', async (e) =>
   const area = document.getElementById('editPondSector').value;
   const x = parseFloat(document.getElementById('editPondX').value) || 0;
   const z = parseFloat(document.getElementById('editPondZ').value) || 0;
-  const w = parseFloat(document.getElementById('editPondW').value) || (unitType === 'tank' ? 12 : 16);
-  const d = unitType === 'tank' ? w : (parseFloat(document.getElementById('editPondD').value) || 13);
+  const w = parseFloat(document.getElementById('editPondW')?.value) || (unitType === 'tank' ? 12 : 16);
+  const d = unitType === 'tank' ? w : (parseFloat(document.getElementById('editPondD')?.value) || 13);
   const species = document.getElementById('editSpecies').value.trim();
   const stock = parseInt(document.getElementById('editStock').value, 10) || 10000;
+  const aeratorCountInp = document.getElementById('editAeratorCount');
+  const aeratorCount = aeratorCountInp ? Math.max(0, parseInt(aeratorCountInp.value, 10) || 0) : (unitType === 'tank' ? 1 : 2);
   const temp = parseFloat(document.getElementById('editTemp').value) || 28.5;
   const ph = parseFloat(document.getElementById('editPh').value) || 7.5;
   const dox = parseFloat(document.getElementById('editDox').value) || 6.5;
-  const status = document.getElementById('editStatus').value;
-  const aeratorStatus = document.getElementById('editAerator').value;
+  const isWarningParam = dox < 6.0 || temp > 31.0 || temp < 24.0 || ph < 6.8 || ph > 8.5;
+  const status = isWarningParam ? 'warning' : 'active';
+  const aeratorStatus = aeratorCount > 0 ? 'running' : 'off';
 
   if (existingId) {
     // Edit existing unit
     const p = pondData.find(item => item.id === existingId);
     if (p) {
-      const locOrDimChanged = p.x !== x || p.z !== z || p.w !== w || p.d !== d || p.unitType !== unitType;
-      Object.assign(p, { unitType, area, x, z, w, d, species, stock, temp, ph, dox, status, aeratorStatus });
+      const locOrDimChanged = p.x !== x || p.z !== z || p.w !== w || p.d !== d || p.unitType !== unitType || p.aeratorCount !== aeratorCount;
+      Object.assign(p, { unitType, area, x, z, w, d, species, stock, aeratorCount, temp, ph, dox, status, aeratorStatus });
 
       if (locOrDimChanged) {
         removePondOrTank3D(existingId);
@@ -3089,7 +3096,7 @@ document.getElementById('pondEditForm')?.addEventListener('submit', async (e) =>
   } else {
     // New Pond or Tank
     if (pondData.some(item => item.id === pId)) {
-      alert(`A water unit with ID ${pId} already exists. Please choose a different ID.`);
+      alert(`A water unit at location ${pId} already exists. Please choose a different location name or ID.`);
       return;
     }
     const newUnit = {
@@ -3102,6 +3109,7 @@ document.getElementById('pondEditForm')?.addEventListener('submit', async (e) =>
       d,
       species,
       stock,
+      aeratorCount,
       temp,
       ph,
       dox,
