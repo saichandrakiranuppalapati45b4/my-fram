@@ -1181,6 +1181,7 @@ for(let i=0;i<25;i++){
    ============================================================ */
 const waterMeshes=[];
 const clickables=[];
+let selectedObject=null;
 const pondGroups=[];
 const aerators=[];
 const WALL_H=1.5,WALL_W=2.0;
@@ -1887,8 +1888,9 @@ const workers=[];
 
 function rebuild3DWorkers() {
   if (typeof scene === 'undefined') return;
-  if (typeof selectedObject !== 'undefined' && selectedObject && selectedObject.userData && selectedObject.userData.objType === 'worker') {
+  if (selectedObject && selectedObject.userData && selectedObject.userData.objType === 'worker') {
     if (typeof deselectObject === 'function') deselectObject();
+    else selectedObject = null;
   }
   for (let i = workers.length - 1; i >= 0; i--) {
     const w = workers[i];
@@ -2039,7 +2041,7 @@ const selectionRing=new THREE.Mesh(
 );
 selectionRing.rotation.x=-Math.PI/2;selectionRing.visible=false;scene.add(selectionRing);
 
-let selectedObject=null;
+selectedObject=null;
 let cameraAnimating=false;
 let camTargetPos=new THREE.Vector3();
 let camTargetLook=new THREE.Vector3();
