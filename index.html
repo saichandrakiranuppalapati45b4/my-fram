@@ -626,40 +626,12 @@ body.panel-collapsed .canvas-zoom-controls{right:20px}
         <input type="hidden" id="unitTypeInput" value="pond">
       </div>
 
-      <!-- LOCATION SECTION -->
-      <div style="background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:12px;margin-bottom:12px">
-        <div style="font-weight:700;font-size:12px;color:var(--accent);margin-bottom:8px;display:flex;align-items:center;gap:6px">
-          <span>📍 Farm Location Placement</span>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">
-          <div class="form-row" style="margin:0">
-            <label>Assigned Sector <span style="color:var(--danger)">*</span></label>
-            <select id="editPondSector">
-              <option value="growout">Grow-Out Sector</option>
-              <option value="nursery">Nursery Sector</option>
-              <option value="hatchery">Hatchery Sector</option>
-              <option value="processing">Processing Sector</option>
-            </select>
-          </div>
-          <div class="form-row" style="margin:0">
-            <label>Location Placement Zone</label>
-            <select id="editPondZonePreset">
-              <option value="growout_ne">Grow-Out East (Zone A)</option>
-              <option value="growout_nw">Grow-Out West (Zone B)</option>
-              <option value="nursery_ne">Nursery East (Zone C)</option>
-              <option value="nursery_nw">Nursery West (Zone D)</option>
-              <option value="hatchery_sw">Hatchery Wing (Zone E)</option>
-              <option value="hatchery_se">Hatchery Bay (Zone F)</option>
-              <option value="proc_dock">Processing Dock (Zone G)</option>
-            </select>
-          </div>
-        </div>
-        <!-- Hidden 3D Coordinates & Dimensions -->
-        <input type="hidden" id="editPondX" value="42">
-        <input type="hidden" id="editPondZ" value="-34">
-        <input type="hidden" id="editPondW" value="16">
-        <input type="hidden" id="editPondD" value="13">
-      </div>
+      <!-- Hidden Location & Dimension State -->
+      <input type="hidden" id="editPondSector" value="growout">
+      <input type="hidden" id="editPondX" value="42">
+      <input type="hidden" id="editPondZ" value="-34">
+      <input type="hidden" id="editPondW" value="16">
+      <input type="hidden" id="editPondD" value="13">
 
       <!-- TELEMETRY & SPECIES SECTION -->
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:12px">
@@ -2826,34 +2798,29 @@ function setUnitTypeInForm(type) {
     lblLoc.innerHTML = (type === 'tank' ? 'Tank Location' : 'Pond Location') + ' <span style="color:var(--danger)">*</span>';
   }
 
-  const aeratorInp = document.getElementById('editAeratorCount');
   const editId = document.getElementById('editPondId').value;
 
   if (type === 'tank') {
-    if (aeratorInp && !editId) aeratorInp.value = '1';
     if (!editId) {
       const nextTankNum = pondData.filter(p => p.unitType === 'tank').length + 1;
       document.getElementById('editPondIdInput').value = 'T-' + String(nextTankNum).padStart(2, '0');
       document.getElementById('editSpecies').value = 'Broodstock Shrimp Tank';
       if (document.getElementById('editPondW')) document.getElementById('editPondW').value = '12';
       if (document.getElementById('editPondD')) document.getElementById('editPondD').value = '12';
-      document.getElementById('editPondSector').value = 'hatchery';
-      document.getElementById('editPondZonePreset').value = 'hatchery_sw';
-      document.getElementById('editPondX').value = '-28';
-      document.getElementById('editPondZ').value = '24';
+      if (document.getElementById('editPondSector')) document.getElementById('editPondSector').value = 'hatchery';
+      if (document.getElementById('editPondX')) document.getElementById('editPondX').value = '-28';
+      if (document.getElementById('editPondZ')) document.getElementById('editPondZ').value = '24';
     }
   } else {
-    if (aeratorInp && !editId) aeratorInp.value = '2';
     if (!editId) {
       const nextPondNum = pondData.filter(p => p.unitType !== 'tank').length + 1;
       document.getElementById('editPondIdInput').value = 'P-' + String(nextPondNum).padStart(2, '0');
       document.getElementById('editSpecies').value = 'Vannamei Shrimp';
       if (document.getElementById('editPondW')) document.getElementById('editPondW').value = '16';
       if (document.getElementById('editPondD')) document.getElementById('editPondD').value = '13';
-      document.getElementById('editPondSector').value = 'growout';
-      document.getElementById('editPondZonePreset').value = 'growout_ne';
-      document.getElementById('editPondX').value = '42';
-      document.getElementById('editPondZ').value = '-34';
+      if (document.getElementById('editPondSector')) document.getElementById('editPondSector').value = 'growout';
+      if (document.getElementById('editPondX')) document.getElementById('editPondX').value = '42';
+      if (document.getElementById('editPondZ')) document.getElementById('editPondZ').value = '-34';
     }
   }
 }
@@ -2864,30 +2831,6 @@ document.getElementById('unitTypeOptions')?.addEventListener('click', (e) => {
   if (!card) return;
   const type = card.getAttribute('data-type');
   setUnitTypeInForm(type);
-});
-
-// Location Preset Zone Change Listener
-document.getElementById('editPondZonePreset')?.addEventListener('change', (e) => {
-  const zoneKey = e.target.value;
-  if (zonePresets[zoneKey]) {
-    const z = zonePresets[zoneKey];
-    document.getElementById('editPondX').value = z.x;
-    document.getElementById('editPondZ').value = z.z;
-    document.getElementById('editPondSector').value = z.area;
-  }
-});
-
-// Location Sector Change Listener (Syncs matching zone)
-document.getElementById('editPondSector')?.addEventListener('change', (e) => {
-  const sector = e.target.value;
-  const matchingKey = Object.keys(zonePresets).find(k => zonePresets[k].area === sector);
-  if (matchingKey) {
-    const zp = document.getElementById('editPondZonePreset');
-    if (zp) zp.value = matchingKey;
-    const z = zonePresets[matchingKey];
-    document.getElementById('editPondX').value = z.x;
-    document.getElementById('editPondZ').value = z.z;
-  }
 });
 
 function renderPondMgmtTable() {
@@ -3028,13 +2971,9 @@ document.getElementById('pondMgmtTableBody')?.addEventListener('click', async (e
       document.getElementById('editPondTitle').innerHTML = `<span>✏️ Edit ${p.id} (${p.unitType === 'tank' ? 'Circular Tank' : 'Aquaculture Pond'})</span>`;
       
       setUnitTypeInForm(p.unitType || 'pond');
-      document.getElementById('editPondSector').value = p.area || 'growout';
-      if (document.getElementById('editPondZonePreset')) {
-        const matchingZone = Object.keys(zonePresets).find(k => zonePresets[k].x === p.x && zonePresets[k].z === p.z) || 'growout_ne';
-        document.getElementById('editPondZonePreset').value = matchingZone;
-      }
-      document.getElementById('editPondX').value = p.x;
-      document.getElementById('editPondZ').value = p.z;
+      if (document.getElementById('editPondSector')) document.getElementById('editPondSector').value = p.area || 'growout';
+      if (document.getElementById('editPondX')) document.getElementById('editPondX').value = p.x;
+      if (document.getElementById('editPondZ')) document.getElementById('editPondZ').value = p.z;
       if (document.getElementById('editPondW')) document.getElementById('editPondW').value = p.w || (p.unitType === 'tank' ? 12 : 16);
       if (document.getElementById('editPondD')) document.getElementById('editPondD').value = p.d || (p.unitType === 'tank' ? 12 : 13);
       document.getElementById('editSpecies').value = p.species;
@@ -3101,11 +3040,22 @@ document.getElementById('pondEditForm')?.addEventListener('submit', async (e) =>
   const formId = document.getElementById('editPondIdInput').value.trim().toUpperCase();
   const pId = existingId || formId;
   const unitType = document.getElementById('unitTypeInput').value || 'pond';
-  const area = document.getElementById('editPondSector').value;
-  const x = parseFloat(document.getElementById('editPondX').value) || 0;
-  const z = parseFloat(document.getElementById('editPondZ').value) || 0;
+  const area = (document.getElementById('editPondSector')?.value) || (unitType === 'tank' ? 'hatchery' : 'growout');
+  let x = parseFloat(document.getElementById('editPondX')?.value) || 0;
+  let z = parseFloat(document.getElementById('editPondZ')?.value) || 0;
   const w = parseFloat(document.getElementById('editPondW')?.value) || (unitType === 'tank' ? 12 : 16);
   const d = unitType === 'tank' ? w : (parseFloat(document.getElementById('editPondD')?.value) || 13);
+
+  if (!existingId) {
+    const sameTypeCount = pondData.filter(item => item.unitType === unitType).length;
+    if (unitType === 'tank') {
+      x = -28 + (sameTypeCount % 3) * 14;
+      z = 24 + Math.floor(sameTypeCount / 3) * 14;
+    } else {
+      x = -38 + (sameTypeCount % 4) * 20;
+      z = -34 + Math.floor(sameTypeCount / 4) * 18;
+    }
+  }
   const species = document.getElementById('editSpecies').value.trim();
   const existingPond = existingId ? pondData.find(item => item.id === existingId) : null;
   const stock = existingPond ? existingPond.stock : 12000;
