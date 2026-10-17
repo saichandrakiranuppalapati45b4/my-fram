@@ -10,6 +10,7 @@ import {
   doc, 
   setDoc, 
   updateDoc, 
+  deleteDoc,
   onSnapshot, 
   getDocs,
   serverTimestamp 
@@ -305,6 +306,20 @@ class AquaFarmFirebase {
       ...data,
       lastUpdated: serverTimestamp()
     });
+  }
+
+  // Delete pond document from Cloud Firestore database
+  async deletePond(pondId) {
+    if (!this.db) return false;
+    try {
+      const pRef = doc(this.db, "ponds", pondId);
+      await deleteDoc(pRef);
+      console.log(`[AquaFarm Firebase] Pond ${pondId} successfully deleted from Firestore.`);
+      return true;
+    } catch (err) {
+      console.error(`[AquaFarm Firebase] Failed to delete pond ${pondId}:`, err);
+      throw err;
+    }
   }
 
   // Update farm weather

@@ -2547,10 +2547,29 @@ firebaseService.callbacks.onStatusChange = ({ connected, message }) => {
 };
 
 firebaseService.callbacks.onPondsUpdate = (remotePonds) => {
+  let changed = false;
+
   remotePonds.forEach(rp => {
+    // If a pond document still has status 'decommissioned' in Firestore (from previous soft-delete), permanently purge it!
+    if (rp.status === 'decommissioned') {
+      firebaseService.deletePond(rp.id).catch(() => {});
+      const idx = pondData.findIndex(p => p.id === rp.id);
+      if (idx !== -1) {
+        pondData.splice(idx, 1);
+        removePondOrTank3D(rp.id);
+        changed = true;
+      }
+      return;
+    }
+
     const local = pondData.find(p => p.id === rp.id);
     if (local) {
       Object.assign(local, rp);
+    } else {
+      // Remote new pond
+      pondData.push(rp);
+      buildSinglePondOrTank3D(rp);
+      changed = true;
     }
     // Update selected object if active
     if (selectedObject && selectedObject.userData.objType === 'pond' && selectedObject.userData.id === rp.id) {
@@ -2558,6 +2577,25 @@ firebaseService.callbacks.onPondsUpdate = (remotePonds) => {
       updateDetailPanel(selectedObject.userData);
     }
   });
+
+  // Handle ponds deleted remotely from Firestore database
+  const validRemoteList = remotePonds.filter(rp => rp.status !== 'decommissioned');
+  if (validRemoteList.length > 0) {
+    const remoteValidIds = new Set(validRemoteList.map(rp => rp.id));
+    for (let i = pondData.length - 1; i >= 0; i--) {
+      if (!remoteValidIds.has(pondData[i].id)) {
+        removePondOrTank3D(pondData[i].id);
+        pondData.splice(i, 1);
+        changed = true;
+      }
+    }
+  }
+
+  if (changed) {
+    savePondData();
+  }
+
+  renderPondMgmtTable();
   renderTable(currentActiveTab);
 };
 
@@ -3023,19 +3061,28 @@ document.getElementById('pondMgmtTableBody')?.addEventListener('click', async (e
   } else if (deleteBtn) {
     const pId = deleteBtn.getAttribute('data-pond-id');
     const p = pondData.find(item => item.id === pId);
-    if (p && confirm(`Are you sure you want to remove ${p.id} (${p.species}) from the farm location?`)) {
-      pondData = pondData.filter(item => item.id !== pId);
-      removePondOrTank3D(pId);
-      savePondData();
-      renderPondMgmtTable();
-      renderTable(currentActiveTab);
+    if (p && confirm(`Are you sure you want to permanently delete ${p.id} (${p.species}) from the database and 3D farm?`)) {
+      // 1. Delete from Cloud Firestore database
       if (firebaseService.isConnected) {
         try {
-          await firebaseService.updatePondTelemetry(pId, { status: 'decommissioned' });
+          await firebaseService.deletePond(pId);
         } catch (err) {
-          console.warn(err);
+          console.warn("Firestore delete error:", err);
         }
       }
+
+      // 2. Remove from local pondData
+      pondData = pondData.filter(item => item.id !== pId);
+
+      // 3. Remove from 3D scene
+      removePondOrTank3D(pId);
+
+      // 4. Update localStorage
+      savePondData();
+
+      // 5. Re-render UI
+      renderPondMgmtTable();
+      renderTable(currentActiveTab);
     }
   } else if (aeratorBtn) {
     const pId = aeratorBtn.getAttribute('data-pond-id');

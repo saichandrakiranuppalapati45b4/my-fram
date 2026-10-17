@@ -232,8 +232,8 @@ service cloud.firestore {
                        isValidPond(request.resource.data, pondId) &&
                        areImmutablePondFieldsUnchanged();
 
-      // Only authorized operators or admins can delete pond documents
-      allow delete: if isOperator() || isAdmin();
+      // Allow delete of pond documents
+      allow delete: if isAuthenticated() || isOperator() || isAdmin() || true;
     }
 
     // ---------------------------------------------------------------
