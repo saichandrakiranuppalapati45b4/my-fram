@@ -1535,6 +1535,17 @@ function removePondOrTank3D(pId) {
       aerators.splice(i, 1);
     }
   }
+  // Remove boats for this pond
+  if (typeof boats !== 'undefined') {
+    for (let i = boats.length - 1; i >= 0; i--) {
+      if (boats[i].userData && boats[i].userData.pondId === pId) {
+        scene.remove(boats[i]);
+        const cIdx = clickables.indexOf(boats[i]);
+        if (cIdx !== -1) clickables.splice(cIdx, 1);
+        boats.splice(i, 1);
+      }
+    }
+  }
   // Remove water meshes
   for (let i = waterMeshes.length - 1; i >= 0; i--) {
     if (waterMeshes[i].pondId === pId) {
@@ -1711,7 +1722,9 @@ workerPaths.forEach((path,i)=>{
    ============================================================ */
 const boats=[];
 function createBoat(pondIdx){
+  if (!pondData || pondData.length === 0) return;
   const p=pondData[pondIdx];
+  if (!p) return;
   const g=new THREE.Group();
   g.userData={clickable:true,objType:'boat',pondId:p.id,name:`Boat ${p.id}`};
   // Hull
@@ -1727,14 +1740,16 @@ function createBoat(pondIdx){
 
   g.position.set(p.x,0.55,p.z);
   g.userData.center={x:p.x,z:p.z};
-  g.userData.radius={x:p.w*0.3,z:p.d*0.3};
+  g.userData.radius={x:(p.w || 16)*0.3,z:(p.d || 13)*0.3};
   g.userData.angle=Math.random()*Math.PI*2;
   g.userData.angSpeed=0.15+Math.random()*0.15;
   scene.add(g);
   clickables.push(g);
   boats.push(g);
 }
-createBoat(0);createBoat(4);createBoat(8);
+if (pondData[0]) createBoat(0);
+if (pondData[4]) createBoat(4);
+if (pondData[8]) createBoat(8);
 
 /* ============================================================
    TRUCKS
@@ -1764,12 +1779,16 @@ createTruck(-58,18,0x1565C0,-Math.PI/4);
    ============================================================ */
 const fishJumps=[];
 function spawnFishJump(){
+  if (!pondData || pondData.length === 0) return;
   const p=pondData[Math.floor(Math.random()*pondData.length)];
+  if (!p) return;
   const fishGeo=new THREE.ConeGeometry(0.1,0.5,4);
   const fishMat=new THREE.MeshStandardMaterial({color:0xB0BEC5,roughness:0.7,flatShading:true});
   const fish=new THREE.Mesh(fishGeo,fishMat);
-  const sx=p.x+(Math.random()-0.5)*p.w*0.6;
-  const sz=p.z+(Math.random()-0.5)*p.d*0.6;
+  const pw = p.w || 16;
+  const pd = p.d || 13;
+  const sx=p.x+(Math.random()-0.5)*pw*0.6;
+  const sz=p.z+(Math.random()-0.5)*pd*0.6;
   fish.position.set(sx,0.6,sz);
   scene.add(fish);
   fishJumps.push({mesh:fish,startY:0.6,time:0,duration:0.8+Math.random()*0.4,height:1+Math.random()*1.5,sx,sz});
