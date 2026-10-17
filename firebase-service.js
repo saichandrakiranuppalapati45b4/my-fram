@@ -46,6 +46,7 @@ class AquaFarmFirebase {
     this.unsubscribers = [];
     this.callbacks = {
       onPondsUpdate: null,
+      onWorkersUpdate: null,
       onMetricsUpdate: null,
       onAlertsUpdate: null,
       onWeatherUpdate: null,
@@ -231,6 +232,19 @@ class AquaFarmFirebase {
       handlePermissionError(error, "Weather");
     });
     this.unsubscribers.push(unsubWeather);
+
+    // 5. Listen to Workers Collection
+    const workersRef = collection(this.db, "workers");
+    const unsubWorkers = onSnapshot(workersRef, (snapshot) => {
+      const workersList = [];
+      snapshot.forEach((d) => workersList.push(d.data()));
+      if (this.callbacks.onWorkersUpdate) {
+        this.callbacks.onWorkersUpdate(workersList);
+      }
+    }, (error) => {
+      handlePermissionError(error, "Workers");
+    });
+    this.unsubscribers.push(unsubWorkers);
   }
 
   // Seed default dataset into Cloud Firestore
@@ -318,6 +332,63 @@ class AquaFarmFirebase {
       return true;
     } catch (err) {
       console.error(`[AquaFarm Firebase] Failed to delete pond ${pondId}:`, err);
+      throw err;
+    }
+  }
+
+  // Save or update worker in Cloud Firestore
+  async saveWorker(worker) {
+    if (!this.db || !worker || !worker.id) return false;
+    try {
+      const wRef = doc(this.db, "workers", worker.id);
+      await setDoc(wRef, {
+        id: worker.id,
+        name: worker.name || '',
+        type: worker.type || 'worker',
+        role: worker.role || '',
+        sector: worker.sector || '',
+        ponds: worker.ponds || [],
+        shift: worker.shift || '',
+        status: worker.status || 'on_duty',
+        clockIn: worker.clockIn || '--',
+        phone: worker.phone || '',
+        radio: worker.radio || '',
+        activeTask: worker.activeTask || '',
+        avatarColor: worker.avatarColor || '#00BFA5',
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      console.log(`[AquaFarm Firebase] Worker ${worker.id} (${worker.name}) saved to Firestore.`);
+      return true;
+    } catch (err) {
+      console.error(`[AquaFarm Firebase] Failed to save worker ${worker.id}:`, err);
+      throw err;
+    }
+  }
+
+  // Seed workers into Cloud Firestore
+  async seedWorkers(workersList) {
+    if (!this.db || !workersList || workersList.length === 0) return false;
+    try {
+      const batchPushes = workersList.map(w => this.saveWorker(w));
+      await Promise.all(batchPushes);
+      console.log(`[AquaFarm Firebase] Seeded ${workersList.length} workers to Firestore.`);
+      return true;
+    } catch (err) {
+      console.error(`[AquaFarm Firebase] Failed to seed workers:`, err);
+      throw err;
+    }
+  }
+
+  // Permanently delete worker from Cloud Firestore database
+  async deleteWorker(workerId) {
+    if (!this.db || !workerId) return false;
+    try {
+      const wRef = doc(this.db, "workers", workerId);
+      await deleteDoc(wRef);
+      console.log(`[AquaFarm Firebase] Worker ${workerId} successfully deleted from Firestore.`);
+      return true;
+    } catch (err) {
+      console.error(`[AquaFarm Firebase] Failed to delete worker ${workerId}:`, err);
       throw err;
     }
   }

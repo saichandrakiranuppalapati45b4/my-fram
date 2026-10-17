@@ -3545,6 +3545,17 @@ function renderWorkerTable() {
   }).join('');
 }
 
+// Real-time Firestore sync for Workers roster
+if (typeof firebaseService !== 'undefined' && firebaseService.callbacks) {
+  firebaseService.callbacks.onWorkersUpdate = (remoteWorkers) => {
+    if (remoteWorkers && remoteWorkers.length > 0) {
+      workersRoster = remoteWorkers;
+      saveWorkersRoster();
+      renderWorkerTable();
+    }
+  };
+}
+
 function openWorkerMgmtModal() {
   const editCard = document.getElementById('workerEditCard');
   if (editCard) editCard.style.display = 'none';
@@ -3592,7 +3603,7 @@ document.getElementById('btnCancelWorkerEdit')?.addEventListener('click', () => 
 });
 
 // Worker Edit & Form Submit
-document.getElementById('workerEditForm')?.addEventListener('submit', (e) => {
+document.getElementById('workerEditForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const id = document.getElementById('editWorkerId').value.trim();
   const name = document.getElementById('workerNameInput').value.trim();
@@ -3607,11 +3618,13 @@ document.getElementById('workerEditForm')?.addEventListener('submit', (e) => {
   const radio = document.getElementById('workerRadioInput').value.trim();
   const activeTask = document.getElementById('workerTaskInput').value.trim();
 
+  let targetWorker = null;
   if (id) {
     // Edit existing
     const existing = workersRoster.find(w => w.id === id);
     if (existing) {
       Object.assign(existing, { name, type, role, sector, ponds, shift, status, phone, radio, activeTask });
+      targetWorker = existing;
     }
   } else {
     // New worker
@@ -3634,15 +3647,25 @@ document.getElementById('workerEditForm')?.addEventListener('submit', (e) => {
       avatarColor
     };
     workersRoster.push(newWorker);
+    targetWorker = newWorker;
   }
 
   saveWorkersRoster();
   renderWorkerTable();
   document.getElementById('workerEditCard').style.display = 'none';
+
+  // Persist to Cloud Firestore database if online
+  if (targetWorker && typeof firebaseService !== 'undefined' && firebaseService.isConnected) {
+    try {
+      await firebaseService.saveWorker(targetWorker);
+    } catch (err) {
+      console.warn("[AquaFarm Firebase] Error saving worker to Firestore:", err);
+    }
+  }
 });
 
 // Table Click Handlers: Track, Edit, Toggle Duty, Assign Task, Delete, Pond Click
-document.getElementById('workerTableBody')?.addEventListener('click', (e) => {
+document.getElementById('workerTableBody')?.addEventListener('click', async (e) => {
   const trackBtn = e.target.closest('.track-worker-btn');
   const editBtn = e.target.closest('.edit-worker-btn');
   const toggleBtn = e.target.closest('.toggle-duty-btn');
@@ -3700,6 +3723,15 @@ document.getElementById('workerTableBody')?.addEventListener('click', (e) => {
       }
       saveWorkersRoster();
       renderWorkerTable();
+
+      // Sync duty status to Firestore
+      if (typeof firebaseService !== 'undefined' && firebaseService.isConnected) {
+        try {
+          await firebaseService.saveWorker(staff);
+        } catch (err) {
+          console.warn("[AquaFarm Firebase] Error updating worker duty:", err);
+        }
+      }
     }
   } else if (taskBtn) {
     const wId = taskBtn.getAttribute('data-worker-id');
@@ -3710,15 +3742,50 @@ document.getElementById('workerTableBody')?.addEventListener('click', (e) => {
         staff.activeTask = newTask.trim();
         saveWorkersRoster();
         renderWorkerTable();
+
+        // Sync duty task to Firestore
+        if (typeof firebaseService !== 'undefined' && firebaseService.isConnected) {
+          try {
+            await firebaseService.saveWorker(staff);
+          } catch (err) {
+            console.warn("[AquaFarm Firebase] Error updating worker task:", err);
+          }
+        }
       }
     }
   } else if (deleteBtn) {
     const wId = deleteBtn.getAttribute('data-worker-id');
     const staff = workersRoster.find(w => w.id === wId);
-    if (staff && confirm(`Are you sure you want to remove ${staff.name} (${staff.id}) from the active crew roster?`)) {
-      workersRoster = workersRoster.filter(w => w.id !== wId);
-      saveWorkersRoster();
-      renderWorkerTable();
+    if (staff) {
+      const typeLabel = staff.type === 'incharge' ? 'In-Charge' : (staff.type === 'helper' ? 'Helper' : 'Worker');
+      if (confirm(`Are you sure you want to permanently delete ${typeLabel} ${staff.name} (${staff.id}) from the database and crew roster?`)) {
+        // 1. Permanently delete worker from Cloud Firestore database
+        if (typeof firebaseService !== 'undefined' && firebaseService.isConnected) {
+          try {
+            await firebaseService.deleteWorker(wId);
+          } catch (err) {
+            console.warn("[AquaFarm Firebase] Worker Firestore delete error:", err);
+          }
+        }
+
+        // 2. Remove 3D worker model from Three.js scene and arrays
+        const wIdx = workers.findIndex(w => w.userData.workerId === wId || (w.userData.fullName && w.userData.fullName.toLowerCase() === staff.name.toLowerCase()));
+        if (wIdx !== -1) {
+          const wMesh = workers[wIdx];
+          if (typeof selectedObject !== 'undefined' && selectedObject === wMesh) {
+            deselectObject();
+          }
+          scene.remove(wMesh);
+          const cIdx = clickables.indexOf(wMesh);
+          if (cIdx !== -1) clickables.splice(cIdx, 1);
+          workers.splice(wIdx, 1);
+        }
+
+        // 3. Remove from workers roster & localStorage
+        workersRoster = workersRoster.filter(w => w.id !== wId);
+        saveWorkersRoster();
+        renderWorkerTable();
+      }
     }
   } else if (pondPill) {
     const pId = pondPill.getAttribute('data-pond');
@@ -3776,8 +3843,11 @@ btnSeedFb.addEventListener('click', async () => {
       { id: 'ALT-04', pondId: 'P-01', message: 'Temperature rising: 29.8°C threshold.', severity: 'warning', resolved: false }
     ];
     await firebaseService.seedInitialData(pondData, sampleAlerts);
+    if (firebaseService.seedWorkers) {
+      await firebaseService.seedWorkers(workersRoster);
+    }
     btnSeedFb.textContent = "✅ Seeded!";
-    fbStatusMsg.textContent = "Firestore database seeded with 11 ponds, metrics, alerts and weather!";
+    fbStatusMsg.textContent = "Firestore database seeded with ponds, crew roster, metrics, alerts and weather!";
     fbStatusMsg.style.color = "var(--success)";
     setTimeout(() => { btnSeedFb.textContent = "🌱 Seed Firestore"; }, 2500);
   } catch (err) {

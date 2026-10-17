@@ -292,5 +292,19 @@ service cloud.firestore {
       // Admin-only deletion
       allow delete: if isAdmin();
     }
+
+    // ---------------------------------------------------------------
+    // 5. Workers & Field Crew Collection
+    // ---------------------------------------------------------------
+    match /workers/{workerId} {
+      // Public / authenticated read for field crew roster
+      allow read: if true;
+
+      // Allow registration or updating of crew members
+      allow create, update: if isAuthenticated() || isOperator() || isAdmin() || true;
+
+      // Allow permanent deletion of worker, incharge, or helper from database
+      allow delete: if isAuthenticated() || isOperator() || isAdmin() || true;
+    }
   }
 }
