@@ -607,22 +607,51 @@ body.panel-collapsed .canvas-zoom-controls{right:20px}
       <input type="hidden" id="editPondW" value="16">
       <input type="hidden" id="editPondD" value="13">
 
-      <!-- LOCATION & SPECIES SECTION -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:12px">
+      <!-- LOCATION & SPECIES & STOCK SECTION -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:12px">
         <div class="form-row" style="margin:0">
-          <label id="lblPondLocation">Pond Location <span style="color:var(--danger)">*</span></label>
-          <input type="text" id="editPondIdInput" placeholder="e.g. Pond-01 or North-01" required>
+          <label id="lblPondLocation">Pond / Tank Location <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="editPondIdInput" placeholder="e.g. MATERU-TK01 or Pond-02" required>
         </div>
         <div class="form-row" style="margin:0">
           <label>Stocked Species / Batch <span style="color:var(--danger)">*</span></label>
           <input type="text" id="editSpecies" placeholder="e.g. Vannamei Shrimp" required>
         </div>
+        <div class="form-row" style="margin:0">
+          <label>Stock Count (Fish / Shrimp) <span style="color:var(--danger)">*</span></label>
+          <input type="number" id="editStock" value="12000" min="0" max="10000000" step="100" required>
+        </div>
       </div>
 
-      <!-- Hidden Telemetry Parameters with Defaults -->
-      <input type="hidden" id="editTemp" value="28.5">
-      <input type="hidden" id="editPh" value="7.5">
-      <input type="hidden" id="editDox" value="6.5">
+      <!-- WATER PARAMETERS & TELEMETRY SECTION -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:12px">
+        <div class="form-row" style="margin:0">
+          <label>Water Temp (°C) <span style="color:var(--danger)">*</span></label>
+          <input type="number" step="0.1" id="editTemp" value="28.5" required>
+        </div>
+        <div class="form-row" style="margin:0">
+          <label>pH Level <span style="color:var(--danger)">*</span></label>
+          <input type="number" step="0.1" id="editPh" value="7.5" required>
+        </div>
+        <div class="form-row" style="margin:0">
+          <label>Dissolved O₂ (mg/L) <span style="color:var(--danger)">*</span></label>
+          <input type="number" step="0.1" id="editDox" value="6.5" required>
+        </div>
+        <div class="form-row" style="margin:0">
+          <label>Ammonia NH₃ (ppm)</label>
+          <input type="number" step="0.01" id="editNh3" value="0.02" required>
+        </div>
+        <div class="form-row" style="margin:0">
+          <label>Aerators Count</label>
+          <select id="editAeratorCount" style="width:100%;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:6px 10px;color:#fff;font-size:12px;outline:none">
+            <option value="2" selected>2 Paddlewheel Aerators</option>
+            <option value="1">1 Paddlewheel Aerator</option>
+            <option value="3">3 Paddlewheel Aerators</option>
+            <option value="4">4 Paddlewheel Aerators</option>
+          </select>
+        </div>
+      </div>
+
       <input type="hidden" id="editParentPondId" value="">
 
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
@@ -1332,175 +1361,102 @@ function buildSinglePondOrTank3D(p) {
   const g = new THREE.Group();
   g.userData = { ...p, clickable: true, objType: 'pond' };
 
-  if (p.unitType === 'tank') {
-    // 3D Circular Aquaculture Tank
-    const radius = Math.max(3, (p.w || 10) / 2);
-    const height = 1.6;
+  // Square / Rectangular Aquaculture Pond structure (as requested by user)
+  const isTank = p.unitType === 'tank';
+  const pw = p.w || 16;
+  const pd = p.d || 13;
 
-    // Tank Wall (Cylindrical dark geomembrane / coated fiberglass)
-    const tankGeo = new THREE.CylinderGeometry(radius, radius, height, 32, 1, true);
-    const tankMat = new THREE.MeshStandardMaterial({ color: 0x1A2A3A, roughness: 0.65, metalness: 0.35, side: THREE.DoubleSide, flatShading: true });
-    const tankWall = new THREE.Mesh(tankGeo, tankMat);
-    tankWall.position.y = height / 2;
-    tankWall.receiveShadow = true;
-    tankWall.castShadow = true;
-    g.add(tankWall);
+  // 4 embankment walls
+  const nw = box(pw + WALL_W * 2, WALL_H, WALL_W, mat.embankment);
+  nw.position.set(0, WALL_H / 2, -pd / 2 - WALL_W / 2);
+  g.add(nw);
 
-    // Top Rim Walkway (Metallic safety rim)
-    const rimGeo = new THREE.TorusGeometry(radius, 0.16, 8, 32);
-    const rimMat = new THREE.MeshStandardMaterial({ color: 0x90A4AE, roughness: 0.4, metalness: 0.8 });
-    const rim = new THREE.Mesh(rimGeo, rimMat);
-    rim.rotation.x = Math.PI / 2;
-    rim.position.y = height;
-    g.add(rim);
+  const sw = box(pw + WALL_W * 2, WALL_H, WALL_W, mat.embankment);
+  sw.position.set(0, WALL_H / 2, pd / 2 + WALL_W / 2);
+  g.add(sw);
 
-    // Tank Floor
-    const flGeo = new THREE.CircleGeometry(radius - 0.05, 32);
-    const floor = new THREE.Mesh(flGeo, mat.pondFloor);
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.y = 0.05;
-    floor.receiveShadow = true;
-    g.add(floor);
+  const ew = box(WALL_W, WALL_H, pd, mat.embankment);
+  ew.position.set(pw / 2 + WALL_W / 2, WALL_H / 2, 0);
+  g.add(ew);
 
-    // Circular Water Surface
-    const waterGeo = new THREE.CircleGeometry(radius - 0.12, 32);
-    const waterMesh = new THREE.Mesh(waterGeo, mat.water.clone());
-    waterMesh.rotation.x = -Math.PI / 2;
-    waterMesh.position.y = height * 0.75;
-    waterMesh.receiveShadow = true;
-    g.add(waterMesh);
-    waterMeshes.push({ mesh: waterMesh, ox: p.x, oz: p.z, pondId: p.id });
+  const ww = box(WALL_W, WALL_H, pd, mat.embankment);
+  ww.position.set(-pw / 2 - WALL_W / 2, WALL_H / 2, 0);
+  g.add(ww);
 
-    // Center Aeration Diffuser Column
-    const centerCol = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, height + 0.4, 12), mat.pipe);
-    centerCol.position.y = (height + 0.4) / 2;
-    g.add(centerCol);
+  // Walkway tops (grey concrete perimeter)
+  const wkN = box(pw + WALL_W * 2 + 0.5, 0.12, WALL_W + 0.5, mat.walkway);
+  wkN.position.set(0, WALL_H + 0.06, -pd / 2 - WALL_W / 2);
+  g.add(wkN);
 
-    // Center Tank Aqua Aerator(s) (Scaled to fit tank)
-    const tankAeratorCount = typeof p.aeratorCount === 'number' ? p.aeratorCount : 1;
-    for (let a = 0; a < tankAeratorCount; a++) {
-      const aeratorObj = createAquaAerator();
-      const ag = aeratorObj.group;
-      ag.scale.set(0.65, 0.65, 0.65);
-      const angle = (a / Math.max(1, tankAeratorCount)) * Math.PI * 2;
-      const offsetDist = tankAeratorCount > 1 ? (radius * 0.45) : 0;
-      ag.position.set(p.x + Math.cos(angle) * offsetDist, 0.3, p.z + Math.sin(angle) * offsetDist);
-      ag.userData = {
-        clickable: true,
-        objType: 'aerator',
-        pondId: p.id,
-        name: `Tank Aerator ${p.id}-A${a + 1}`,
-        speed: 3.5 + Math.random() * 1.5
-      };
-      scene.add(ag);
-      clickables.push(ag);
-      aerators.push({
-        group: ag,
-        wheel: aeratorObj.wheel,
-        spray: aeratorObj.spray,
-        wheelPositions: aeratorObj.wheelPositions,
-        pondId: p.id,
-        speed: 3.5 + Math.random() * 1.5
-      });
-    }
+  const wkS = box(pw + WALL_W * 2 + 0.5, 0.12, WALL_W + 0.5, mat.walkway);
+  wkS.position.set(0, WALL_H + 0.06, pd / 2 + WALL_W / 2);
+  g.add(wkS);
 
-  } else {
-    // 3D Rectangular Earthen Embankment Pond
-    const pw = p.w || 16;
-    const pd = p.d || 13;
+  const wkE = box(WALL_W + 0.5, 0.12, pd + 0.5, mat.walkway);
+  wkE.position.set(pw / 2 + WALL_W / 2, WALL_H + 0.06, 0);
+  g.add(wkE);
 
-    // 4 walls
-    const nw = box(pw + WALL_W * 2, WALL_H, WALL_W, mat.embankment);
-    nw.position.set(0, WALL_H / 2, -pd / 2 - WALL_W / 2);
-    g.add(nw);
+  const wkW = box(WALL_W + 0.5, 0.12, pd + 0.5, mat.walkway);
+  wkW.position.set(-pw / 2 - WALL_W / 2, WALL_H + 0.06, 0);
+  g.add(wkW);
 
-    const sw = box(pw + WALL_W * 2, WALL_H, WALL_W, mat.embankment);
-    sw.position.set(0, WALL_H / 2, pd / 2 + WALL_W / 2);
-    g.add(sw);
+  // Water surface
+  const waterGeo = new THREE.PlaneGeometry(pw - 0.3, pd - 0.3, 12, 12);
+  const waterMesh = new THREE.Mesh(waterGeo, mat.water.clone());
+  waterMesh.rotation.x = -Math.PI / 2;
+  waterMesh.position.y = 0.6;
+  waterMesh.receiveShadow = true;
+  g.add(waterMesh);
+  waterMeshes.push({ mesh: waterMesh, ox: p.x, oz: p.z, pondId: p.id });
 
-    const ew = box(WALL_W, WALL_H, pd, mat.embankment);
-    ew.position.set(pw / 2 + WALL_W / 2, WALL_H / 2, 0);
-    g.add(ew);
+  // Pond floor
+  const fl = new THREE.Mesh(new THREE.PlaneGeometry(pw - 0.3, pd - 0.3), mat.pondFloor);
+  fl.rotation.x = -Math.PI / 2;
+  fl.position.y = 0.05;
+  fl.receiveShadow = true;
+  g.add(fl);
 
-    const ww = box(WALL_W, WALL_H, pd, mat.embankment);
-    ww.position.set(-pw / 2 - WALL_W / 2, WALL_H / 2, 0);
-    g.add(ww);
+  // Blue pipes along edges
+  const pipeGeo = new THREE.CylinderGeometry(0.12, 0.12, pw + WALL_W * 2, 6);
+  const pipeN = new THREE.Mesh(pipeGeo, mat.pipe);
+  pipeN.rotation.z = Math.PI / 2;
+  pipeN.position.set(0, WALL_H + 0.25, -pd / 2 - WALL_W / 2);
+  g.add(pipeN);
 
-    // Walkway tops
-    const wkN = box(pw + WALL_W * 2 + 0.5, 0.12, WALL_W + 0.5, mat.walkway);
-    wkN.position.set(0, WALL_H + 0.06, -pd / 2 - WALL_W / 2);
-    g.add(wkN);
+  // Railing posts
+  for (let rx = -pw / 2; rx <= pw / 2; rx += 4) {
+    const post = cyl(0.06, 0.06, 0.8, 4, mat.pipe);
+    post.position.set(rx, WALL_H + 0.4, -pd / 2 - WALL_W / 2);
+    g.add(post);
+    const post2 = cyl(0.06, 0.06, 0.8, 4, mat.pipe);
+    post2.position.set(rx, WALL_H + 0.4, pd / 2 + WALL_W / 2);
+    g.add(post2);
+  }
 
-    const wkS = box(pw + WALL_W * 2 + 0.5, 0.12, WALL_W + 0.5, mat.walkway);
-    wkS.position.set(0, WALL_H + 0.06, pd / 2 + WALL_W / 2);
-    g.add(wkS);
-
-    const wkE = box(WALL_W + 0.5, 0.12, pd + 0.5, mat.walkway);
-    wkE.position.set(pw / 2 + WALL_W / 2, WALL_H + 0.06, 0);
-    g.add(wkE);
-
-    const wkW = box(WALL_W + 0.5, 0.12, pd + 0.5, mat.walkway);
-    wkW.position.set(-pw / 2 - WALL_W / 2, WALL_H + 0.06, 0);
-    g.add(wkW);
-
-    // Water surface
-    const waterGeo = new THREE.PlaneGeometry(pw - 0.3, pd - 0.3, 12, 12);
-    const waterMesh = new THREE.Mesh(waterGeo, mat.water.clone());
-    waterMesh.rotation.x = -Math.PI / 2;
-    waterMesh.position.y = 0.6;
-    waterMesh.receiveShadow = true;
-    g.add(waterMesh);
-    waterMeshes.push({ mesh: waterMesh, ox: p.x, oz: p.z, pondId: p.id });
-
-    // Pond floor
-    const fl = new THREE.Mesh(new THREE.PlaneGeometry(pw - 0.3, pd - 0.3), mat.pondFloor);
-    fl.rotation.x = -Math.PI / 2;
-    fl.position.y = 0.05;
-    fl.receiveShadow = true;
-    g.add(fl);
-
-    // Blue pipes along edges
-    const pipeGeo = new THREE.CylinderGeometry(0.12, 0.12, pw + WALL_W * 2, 6);
-    const pipeN = new THREE.Mesh(pipeGeo, mat.pipe);
-    pipeN.rotation.z = Math.PI / 2;
-    pipeN.position.set(0, WALL_H + 0.25, -pd / 2 - WALL_W / 2);
-    g.add(pipeN);
-
-    // Railing posts
-    for (let rx = -pw / 2; rx <= pw / 2; rx += 4) {
-      const post = cyl(0.06, 0.06, 0.8, 4, mat.pipe);
-      post.position.set(rx, WALL_H + 0.4, -pd / 2 - WALL_W / 2);
-      g.add(post);
-      const post2 = cyl(0.06, 0.06, 0.8, 4, mat.pipe);
-      post2.position.set(rx, WALL_H + 0.4, pd / 2 + WALL_W / 2);
-      g.add(post2);
-    }
-
-    // Aqua Aerator paddlewheel unit(s)
-    const count = typeof p.aeratorCount === 'number' ? p.aeratorCount : (pw > 20 ? 3 : 2);
-    for (let a = 0; a < count; a++) {
-      const aeratorObj = createAquaAerator();
-      const ag = aeratorObj.group;
-      const spacing = pw / (count + 1);
-      ag.position.set(p.x - pw / 2 + spacing * (a + 1), 0, p.z + (Math.random() - 0.5) * pd * 0.4);
-      ag.userData = {
-        clickable: true,
-        objType: 'aerator',
-        pondId: p.id,
-        name: `Aqua Aerator ${p.id}-A${a + 1}`,
-        speed: 3.5 + Math.random() * 1.5
-      };
-      scene.add(ag);
-      clickables.push(ag);
-      aerators.push({
-        group: ag,
-        wheel: aeratorObj.wheel,
-        spray: aeratorObj.spray,
-        wheelPositions: aeratorObj.wheelPositions,
-        pondId: p.id,
-        speed: 3.5 + Math.random() * 1.5
-      });
-    }
+  // Aqua Aerator paddlewheel unit(s)
+  const count = typeof p.aeratorCount === 'number' ? p.aeratorCount : 2;
+  for (let a = 0; a < count; a++) {
+    const aeratorObj = createAquaAerator();
+    const ag = aeratorObj.group;
+    const spacing = pw / (count + 1);
+    ag.position.set(p.x - pw / 2 + spacing * (a + 1), 0, p.z + (Math.random() - 0.5) * pd * 0.3);
+    ag.userData = {
+      clickable: true,
+      objType: 'aerator',
+      pondId: p.id,
+      name: `Aqua Aerator ${p.id}-A${a + 1}`,
+      speed: 3.5 + Math.random() * 1.5
+    };
+    scene.add(ag);
+    clickables.push(ag);
+    aerators.push({
+      group: ag,
+      wheel: aeratorObj.wheel,
+      spray: aeratorObj.spray,
+      wheelPositions: aeratorObj.wheelPositions,
+      pondId: p.id,
+      speed: 3.5 + Math.random() * 1.5
+    });
   }
 
   g.position.set(p.x, 0, p.z);
@@ -3048,8 +3004,8 @@ function setUnitTypeInForm(type) {
         const nextTankNum = pondData.filter(p => p.unitType === 'tank').length + 1;
         document.getElementById('editPondIdInput').value = 'T-' + String(nextTankNum).padStart(2, '0');
         document.getElementById('editSpecies').value = 'Broodstock Shrimp Tank';
-        if (document.getElementById('editPondW')) document.getElementById('editPondW').value = '10';
-        if (document.getElementById('editPondD')) document.getElementById('editPondD').value = '10';
+        if (document.getElementById('editPondW')) document.getElementById('editPondW').value = '16';
+        if (document.getElementById('editPondD')) document.getElementById('editPondD').value = '13';
         if (document.getElementById('editPondSector')) document.getElementById('editPondSector').value = 'hatchery';
         if (document.getElementById('editPondX')) document.getElementById('editPondX').value = '-28';
         if (document.getElementById('editPondZ')) document.getElementById('editPondZ').value = '24';
@@ -3189,26 +3145,36 @@ function openAddTankForPond(pondId) {
   document.getElementById('editPondIdInput').value = suggestedTankId;
   document.getElementById('editPondIdInput').disabled = false;
   document.getElementById('editParentPondId').value = parentId;
-  document.getElementById('editSpecies').value = parentObj ? `${parentObj.species} (Nursery Tank)` : 'Nursery Post-Larvae';
+  document.getElementById('editSpecies').value = parentObj ? parentObj.species : 'Vannamei Shrimp';
+  if (document.getElementById('editStock')) document.getElementById('editStock').value = parentObj ? parentObj.stock : 12000;
+  if (document.getElementById('editTemp')) document.getElementById('editTemp').value = parentObj ? parentObj.temp : 28.5;
+  if (document.getElementById('editPh')) document.getElementById('editPh').value = parentObj ? parentObj.ph : 7.5;
+  if (document.getElementById('editDox')) document.getElementById('editDox').value = parentObj ? parentObj.dox : 6.5;
+  if (document.getElementById('editNh3')) document.getElementById('editNh3').value = parentObj ? (parentObj.nh3 || 0.02) : 0.02;
+  if (document.getElementById('editAeratorCount')) document.getElementById('editAeratorCount').value = '2';
 
   if (document.getElementById('editPondSector')) {
-    document.getElementById('editPondSector').value = parentObj ? (parentObj.area || 'nursery') : 'nursery';
+    document.getElementById('editPondSector').value = parentObj ? (parentObj.area || 'growout') : 'growout';
   }
 
   const pX = parentObj ? parentObj.x : 0;
   const pZ = parentObj ? parentObj.z : 0;
   const pW = parentObj ? (parentObj.w || 16) : 16;
-  const offsetX = (pW / 2 + 6) + (siblingTanks.length % 2) * 8;
-  const offsetZ = -6 + Math.floor(siblingTanks.length / 2) * 8;
+  const pD = parentObj ? (parentObj.d || 13) : 13;
+  const idx = siblingTanks.length;
+  const gridCol = (idx % 3) + 1;
+  const gridRow = Math.floor(idx / 3);
+  const newX = pX + gridCol * (pW + 4);
+  const newZ = pZ + gridRow * (pD + 4);
 
-  if (document.getElementById('editPondX')) document.getElementById('editPondX').value = pX + offsetX;
-  if (document.getElementById('editPondZ')) document.getElementById('editPondZ').value = pZ + offsetZ;
-  if (document.getElementById('editPondW')) document.getElementById('editPondW').value = '10';
-  if (document.getElementById('editPondD')) document.getElementById('editPondD').value = '10';
+  if (document.getElementById('editPondX')) document.getElementById('editPondX').value = newX;
+  if (document.getElementById('editPondZ')) document.getElementById('editPondZ').value = newZ;
+  if (document.getElementById('editPondW')) document.getElementById('editPondW').value = '16';
+  if (document.getElementById('editPondD')) document.getElementById('editPondD').value = '13';
 
   setUnitTypeInForm('tank');
 
-  document.getElementById('editPondTitle').innerHTML = `<span>➕ Add Circular Tank to Pond ${parentId}</span>`;
+  document.getElementById('editPondTitle').innerHTML = `<span>➕ Add Square Tank / Pond to ${parentId}</span>`;
   const card = document.getElementById('pondEditCard');
   card.style.display = 'block';
   card.scrollIntoView({ behavior: 'smooth' });
@@ -3312,6 +3278,12 @@ document.getElementById('btnShowAddPondModal')?.addEventListener('click', () => 
   document.getElementById('editParentPondId').value = '';
   document.getElementById('editPondTitle').innerHTML = '<span>➕ Add New Pond / Tank at Location</span>';
   document.getElementById('editPondIdInput').disabled = false;
+  if (document.getElementById('editStock')) document.getElementById('editStock').value = 12000;
+  if (document.getElementById('editTemp')) document.getElementById('editTemp').value = 28.5;
+  if (document.getElementById('editPh')) document.getElementById('editPh').value = 7.5;
+  if (document.getElementById('editDox')) document.getElementById('editDox').value = 6.5;
+  if (document.getElementById('editNh3')) document.getElementById('editNh3').value = 0.02;
+  if (document.getElementById('editAeratorCount')) document.getElementById('editAeratorCount').value = '2';
   setUnitTypeInForm('pond');
 
   const card = document.getElementById('pondEditCard');
@@ -3409,9 +3381,12 @@ async function handlePondActionClick(e) {
       if (document.getElementById('editPondW')) document.getElementById('editPondW').value = p.w || (p.unitType === 'tank' ? 10 : 16);
       if (document.getElementById('editPondD')) document.getElementById('editPondD').value = p.d || (p.unitType === 'tank' ? 10 : 13);
       document.getElementById('editSpecies').value = p.species;
-      if (document.getElementById('editTemp')) document.getElementById('editTemp').value = p.temp;
-      if (document.getElementById('editPh')) document.getElementById('editPh').value = p.ph;
-      if (document.getElementById('editDox')) document.getElementById('editDox').value = p.dox;
+      if (document.getElementById('editStock')) document.getElementById('editStock').value = p.stock || 12000;
+      if (document.getElementById('editTemp')) document.getElementById('editTemp').value = p.temp || 28.5;
+      if (document.getElementById('editPh')) document.getElementById('editPh').value = p.ph || 7.5;
+      if (document.getElementById('editDox')) document.getElementById('editDox').value = p.dox || 6.5;
+      if (document.getElementById('editNh3')) document.getElementById('editNh3').value = p.nh3 || 0.02;
+      if (document.getElementById('editAeratorCount')) document.getElementById('editAeratorCount').value = String(typeof p.aeratorCount === 'number' ? p.aeratorCount : 2);
 
       const card = document.getElementById('pondEditCard');
       card.style.display = 'block';
@@ -3488,40 +3463,37 @@ document.getElementById('pondEditForm')?.addEventListener('submit', async (e) =>
   const pId = existingId || formId;
   const unitType = document.getElementById('unitTypeInput').value || 'pond';
   const parentPond = document.getElementById('editParentPondId')?.value || '';
-  let area = (document.getElementById('editPondSector')?.value) || (unitType === 'tank' ? 'hatchery' : 'growout');
+  let area = (document.getElementById('editPondSector')?.value) || 'growout';
   let x = parseFloat(document.getElementById('editPondX')?.value) || 0;
   let z = parseFloat(document.getElementById('editPondZ')?.value) || 0;
-  const w = parseFloat(document.getElementById('editPondW')?.value) || (unitType === 'tank' ? 10 : 16);
-  const d = unitType === 'tank' ? w : (parseFloat(document.getElementById('editPondD')?.value) || 13);
+  const w = parseFloat(document.getElementById('editPondW')?.value) || 16;
+  const d = parseFloat(document.getElementById('editPondD')?.value) || 13;
 
   if (!existingId) {
     if (unitType === 'tank' && parentPond) {
       const parentObj = pondData.find(item => item.id === parentPond);
       const siblingTanks = pondData.filter(item => item.unitType === 'tank' && (item.parentPond === parentPond || item.id.startsWith(parentPond + '-')));
       const pW = parentObj ? (parentObj.w || 16) : 16;
-      x = (parentObj ? parentObj.x : 0) + (pW / 2 + 6) + (siblingTanks.length % 2) * 8;
-      z = (parentObj ? parentObj.z : 0) - 6 + Math.floor(siblingTanks.length / 2) * 8;
-      area = parentObj ? (parentObj.area || 'nursery') : 'nursery';
+      const pD = parentObj ? (parentObj.d || 13) : 13;
+      const idx = siblingTanks.length;
+      const gridCol = (idx % 3) + 1;
+      const gridRow = Math.floor(idx / 3);
+      x = (parentObj ? parentObj.x : 0) + gridCol * (pW + 4);
+      z = (parentObj ? parentObj.z : 0) + gridRow * (pD + 4);
+      area = parentObj ? (parentObj.area || 'growout') : 'growout';
     } else {
-      const sameTypeCount = pondData.filter(item => item.unitType === unitType).length;
-      if (unitType === 'tank') {
-        x = -28 + (sameTypeCount % 3) * 14;
-        z = 24 + Math.floor(sameTypeCount / 3) * 14;
-      } else {
-        x = -38 + (sameTypeCount % 4) * 20;
-        z = -34 + Math.floor(sameTypeCount / 4) * 18;
-      }
+      const sameTypeCount = pondData.length;
+      x = -38 + (sameTypeCount % 4) * 20;
+      z = -34 + Math.floor(sameTypeCount / 4) * 18;
     }
   }
   const species = document.getElementById('editSpecies').value.trim();
-  const existingPond = existingId ? pondData.find(item => item.id === existingId) : null;
-  const stock = existingPond ? existingPond.stock : 12000;
-  const aeratorCount = existingPond && typeof existingPond.aeratorCount === 'number'
-    ? existingPond.aeratorCount
-    : (unitType === 'tank' ? 1 : 2);
+  const stock = parseInt(document.getElementById('editStock')?.value) || 12000;
+  const aeratorCount = parseInt(document.getElementById('editAeratorCount')?.value) || 2;
   const temp = parseFloat(document.getElementById('editTemp')?.value) || 28.5;
   const ph = parseFloat(document.getElementById('editPh')?.value) || 7.5;
   const dox = parseFloat(document.getElementById('editDox')?.value) || 6.5;
+  const nh3 = parseFloat(document.getElementById('editNh3')?.value) || 0.02;
   const isWarningParam = dox < 6.0 || temp > 31.0 || temp < 24.0 || ph < 6.8 || ph > 8.5;
   const status = isWarningParam ? 'warning' : 'active';
   const aeratorStatus = aeratorCount > 0 ? 'running' : 'off';
@@ -3531,7 +3503,7 @@ document.getElementById('pondEditForm')?.addEventListener('submit', async (e) =>
     const p = pondData.find(item => item.id === existingId);
     if (p) {
       const locOrDimChanged = p.x !== x || p.z !== z || p.w !== w || p.d !== d || p.unitType !== unitType || p.aeratorCount !== aeratorCount;
-      Object.assign(p, { unitType, parentPond, area, x, z, w, d, species, stock, aeratorCount, temp, ph, dox, status, aeratorStatus });
+      Object.assign(p, { unitType, parentPond, area, x, z, w, d, species, stock, aeratorCount, temp, ph, dox, nh3, status, aeratorStatus });
 
       if (locOrDimChanged) {
         removePondOrTank3D(existingId);
@@ -3564,7 +3536,7 @@ document.getElementById('pondEditForm')?.addEventListener('submit', async (e) =>
       temp,
       ph,
       dox,
-      nh3: 0.02,
+      nh3,
       status,
       aeratorStatus
     };
