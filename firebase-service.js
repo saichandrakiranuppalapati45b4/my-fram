@@ -312,6 +312,41 @@ class AquaFarmFirebase {
     return true;
   }
 
+  // Save or update pond/tank in Cloud Firestore
+  async savePond(pond) {
+    if (!this.db || !pond || !pond.id) return false;
+    try {
+      const pRef = doc(this.db, "ponds", pond.id);
+      const dataToSave = {
+        id: pond.id,
+        name: pond.name || pond.id,
+        species: pond.species || 'Vannamei Shrimp',
+        stock: typeof pond.stock === 'number' ? pond.stock : 12000,
+        temp: typeof pond.temp === 'number' ? pond.temp : 28.5,
+        ph: typeof pond.ph === 'number' ? pond.ph : 7.5,
+        dox: typeof pond.dox === 'number' ? pond.dox : 6.5,
+        nh3: typeof pond.nh3 === 'number' ? pond.nh3 : 0.02,
+        status: pond.status || 'active',
+        aeratorStatus: pond.aeratorStatus || 'running',
+        unitType: pond.unitType || 'pond',
+        parentPond: pond.parentPond || '',
+        area: pond.area || 'growout',
+        x: typeof pond.x === 'number' ? pond.x : 0,
+        z: typeof pond.z === 'number' ? pond.z : 0,
+        w: typeof pond.w === 'number' ? pond.w : 16,
+        d: typeof pond.d === 'number' ? pond.d : 13,
+        aeratorCount: typeof pond.aeratorCount === 'number' ? pond.aeratorCount : (pond.unitType === 'tank' ? 1 : 2),
+        lastUpdated: serverTimestamp()
+      };
+      await setDoc(pRef, dataToSave, { merge: true });
+      console.log(`[AquaFarm Firebase] Pond/Tank ${pond.id} saved to Firestore.`);
+      return true;
+    } catch (err) {
+      console.error(`[AquaFarm Firebase] Failed to save pond ${pond.id}:`, err);
+      throw err;
+    }
+  }
+
   // Update specific pond telemetry (e.g. from IoT sensor or operator click)
   async updatePondTelemetry(pondId, data) {
     if (!this.db) return;

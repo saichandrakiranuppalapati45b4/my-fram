@@ -242,35 +242,8 @@ body.panel-collapsed .canvas-zoom-controls{right:20px}
 <header class="top-bar glass">
   <div class="top-bar-left">
     <div class="logo">🐟 AquaFarm Command</div>
-    <div class="search-box"><input type="text" placeholder="Search ponds, species…" id="searchInput"></div>
-    <div class="area-btns" id="areaBtns">
-      <button class="area-btn active" data-area="overview">Overview</button>
-      <button class="area-btn" data-area="hatchery">Hatchery</button>
-      <button class="area-btn" data-area="nursery">Nursery</button>
-      <button class="area-btn" data-area="growout">Grow-Out</button>
-      <button class="area-btn" data-area="processing">Processing</button>
-    </div>
   </div>
   <div class="top-bar-right">
-    <div class="zoom-btn-group" style="display:flex;align-items:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:2px 4px;gap:2px">
-      <button class="area-btn" id="btnZoomIn" title="Zoom In (+)" style="padding:4px 8px;font-size:12px;font-weight:700">🔍+</button>
-      <button class="area-btn" id="btnZoomOut" title="Zoom Out (−)" style="padding:4px 8px;font-size:12px;font-weight:700">🔍−</button>
-      <button class="area-btn" id="btnResetZoom" title="Reset Camera View" style="padding:4px 8px;font-size:12px">🎯</button>
-    </div>
-    <button class="area-btn" id="dragModeBtn" title="Switch between Pan and Rotate mode for Left-Click drag">✋ Pan</button>
-    <div class="weather-wrap">
-      <button class="weather-btn" id="weatherBtn">☀️ Sunny</button>
-      <div class="weather-drop glass" id="weatherDrop">
-        <button data-weather="sunny">☀️ Sunny</button>
-        <button data-weather="rainy">🌧️ Monsoon</button>
-        <button data-weather="cloudy">☁️ Overcast</button>
-        <button data-weather="stormy">⛈️ Stormy</button>
-      </div>
-    </div>
-    <button class="area-btn" id="firebaseBtn" title="Firebase Database Status" style="display:flex;align-items:center;gap:6px">
-      <span class="status-dot warning" id="fbDot" style="margin:0"></span>
-      <span id="fbText">🔥 Firebase</span>
-    </button>
     <div class="clock" id="liveClock">00:00:00</div>
     <div class="alerts-wrap" id="alertsWrap">
       🔔<span class="badge" id="alertsBadge">3</span>
@@ -295,6 +268,7 @@ body.panel-collapsed .canvas-zoom-controls{right:20px}
           <button class="menu-item-btn" id="btnOpenSettings">⚙️ Farm Settings</button>
           <button class="menu-item-btn" id="btnOpenPondMgmt">🐟 Pond Management</button>
           <button class="menu-item-btn" id="btnOpenWorkerMgmt">👷 Worker Management</button>
+          <button class="menu-item-btn" id="btnUserOpenFirebase">🔥 Database Sync</button>
           <div style="height:1px;background:rgba(255,255,255,0.08);margin:6px 0"></div>
           <a href="login.html" class="area-btn" style="display:block;text-align:center;text-decoration:none;margin-bottom:6px" id="btnLoginLink">🔐 Sign In / Sign Up</a>
           <button class="area-btn" id="btnSignOut" style="display:none;width:100%;color:var(--danger)">🚪 Sign Out</button>
@@ -633,8 +607,8 @@ body.panel-collapsed .canvas-zoom-controls{right:20px}
       <input type="hidden" id="editPondW" value="16">
       <input type="hidden" id="editPondD" value="13">
 
-      <!-- TELEMETRY & SPECIES SECTION -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:12px">
+      <!-- LOCATION & SPECIES SECTION -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:12px">
         <div class="form-row" style="margin:0">
           <label id="lblPondLocation">Pond Location <span style="color:var(--danger)">*</span></label>
           <input type="text" id="editPondIdInput" placeholder="e.g. Pond-01 or North-01" required>
@@ -643,25 +617,36 @@ body.panel-collapsed .canvas-zoom-controls{right:20px}
           <label>Stocked Species / Batch <span style="color:var(--danger)">*</span></label>
           <input type="text" id="editSpecies" placeholder="e.g. Vannamei Shrimp" required>
         </div>
-        <div class="form-row" style="margin:0">
-          <label>Water Temp (°C)</label>
-          <input type="number" step="0.1" id="editTemp" value="28.5" required>
-        </div>
-        <div class="form-row" style="margin:0">
-          <label>pH Level</label>
-          <input type="number" step="0.1" id="editPh" value="7.5" required>
-        </div>
-        <div class="form-row" style="margin:0">
-          <label>Dissolved O₂ (mg/L)</label>
-          <input type="number" step="0.1" id="editDox" value="6.5" required>
-        </div>
       </div>
 
-      <div style="display:flex;justify-content:flex-end;gap:8px">
+      <!-- Hidden Telemetry Parameters with Defaults -->
+      <input type="hidden" id="editTemp" value="28.5">
+      <input type="hidden" id="editPh" value="7.5">
+      <input type="hidden" id="editDox" value="6.5">
+      <input type="hidden" id="editParentPondId" value="">
+
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
         <button type="button" class="area-btn" id="cancelPondEdit">Cancel</button>
         <button type="submit" class="area-btn active" id="btnSavePondToFirestore">💾 Save & Place in 3D Farm</button>
       </div>
     </form>
+  </div>
+
+  <!-- Manage Tanks Drawer for a Pond Location -->
+  <div id="tankMgmtDrawer" style="display:none;padding:16px;background:rgba(66,165,245,0.08);border:1px solid #42A5F5;border-radius:12px;margin-bottom:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h4 id="tankMgmtTitle" style="color:#90CAF9;font-size:15px;margin:0;display:flex;align-items:center;gap:8px">
+        <span>🧪 Circular Tanks at Pond Location</span>
+      </h4>
+      <button type="button" id="closeTankMgmt" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:16px">✕</button>
+    </div>
+    <div id="tankMgmtContent" style="margin-bottom:12px">
+      <!-- Populated dynamically with tanks at this pond location -->
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+      <button type="button" class="area-btn" id="btnCloseTankMgmt">Close</button>
+      <button type="button" class="area-btn active" id="btnDrawerAddTank" style="background:var(--accent);color:#0a1628;font-weight:700">➕ Add Tank to this Pond</button>
+    </div>
   </div>
 
   <!-- Pond & Tank List Table -->
@@ -671,15 +656,9 @@ body.panel-collapsed .canvas-zoom-controls{right:20px}
         <tr style="border-bottom:1px solid rgba(255,255,255,0.1)">
           <th style="padding:10px">Pond Location</th>
           <th style="padding:10px">Type</th>
-          <th style="padding:10px">Location & Sector</th>
           <th style="padding:10px">Species</th>
-          <th style="padding:10px">Stock</th>
-          <th style="padding:10px">Temp</th>
-          <th style="padding:10px">pH</th>
-          <th style="padding:10px">DO</th>
-          <th style="padding:10px">Aerator</th>
-          <th style="padding:10px">Status</th>
-          <th style="padding:10px;text-align:center">Action</th>
+          <th style="padding:10px">Circular Tanks</th>
+          <th style="padding:10px;text-align:center">Tank Options & Actions</th>
         </tr>
       </thead>
       <tbody id="pondMgmtTableBody">
@@ -2166,17 +2145,29 @@ function updateDetailPanel(data){
         <div class="activity-item"><b>12:00</b> — Sinking pellets 28%, ${(data.stock*0.002).toFixed(0)} kg</div>
         <div class="activity-item"><b>18:00</b> — Floating pellets 32%, ${(data.stock*0.003).toFixed(0)} kg</div>
       </div>
-      <div style="margin-top:14px">
-        <button class="area-btn active" id="btnSideOpenPondMgmt" style="width:100%;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px">
-          <span>🐟 Open Pond & Tank Management Hub</span>
+      <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button class="area-btn active" id="btnSideAddTank" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:9px;font-weight:700;background:var(--accent);color:#0a1628">
+            <span>➕ Add Tank</span>
+          </button>
+          <button class="area-btn" id="btnSideManageTanks" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:9px;font-weight:600;border:1px solid #42A5F5;color:#90CAF9">
+            <span>🧪 Manage Tanks</span>
+          </button>
+        </div>
+        <button class="area-btn" id="btnSideOpenPondMgmt" style="width:100%;display:flex;align-items:center;justify-content:center;gap:6px;padding:7px;font-size:11px">
+          <span>⚙️ Open Pond & Tank Management Hub</span>
         </button>
       </div>`;
-    const pMgmtBtn = document.getElementById('btnSideOpenPondMgmt');
-    if (pMgmtBtn) {
-      pMgmtBtn.addEventListener('click', () => {
-        openPondMgmtModal();
-      });
-    }
+    const targetParentId = isTank && data.parentPond ? data.parentPond : data.id;
+    document.getElementById('btnSideAddTank')?.addEventListener('click', () => {
+      openAddTankForPond(targetParentId);
+    });
+    document.getElementById('btnSideManageTanks')?.addEventListener('click', () => {
+      openManageTanksForPond(targetParentId);
+    });
+    document.getElementById('btnSideOpenPondMgmt')?.addEventListener('click', () => {
+      openPondMgmtModal();
+    });
   }else if(data.objType==='building'){
     title.textContent=`🏗️ ${data.name}`;
     const infos={
@@ -2550,7 +2541,7 @@ document.getElementById('tableContent').addEventListener('click',e=>{
 });
 
 // Area switcher
-document.getElementById('areaBtns').addEventListener('click',e=>{
+document.getElementById('areaBtns')?.addEventListener('click',e=>{
   const btn=e.target.closest('.area-btn');
   if(!btn||!btn.dataset.area)return;
   document.querySelectorAll('.area-btn').forEach(b=>b.classList.remove('active'));
@@ -2597,16 +2588,16 @@ document.getElementById('closePanel').addEventListener('click',()=>{
 // Weather
 const weatherBtn=document.getElementById('weatherBtn');
 const weatherDrop=document.getElementById('weatherDrop');
-weatherBtn.addEventListener('click',e=>{
+weatherBtn?.addEventListener('click',e=>{
   e.stopPropagation();
-  weatherDrop.classList.toggle('open');
-  document.getElementById('alertsDrop').classList.remove('open');
+  weatherDrop?.classList.toggle('open');
+  document.getElementById('alertsDrop')?.classList.remove('open');
 });
-weatherDrop.addEventListener('click',e=>{
+weatherDrop?.addEventListener('click',e=>{
   const btn=e.target.closest('button');
   if(!btn||!btn.dataset.weather)return;
   setWeather(btn.dataset.weather);
-  weatherDrop.classList.remove('open');
+  weatherDrop?.classList.remove('open');
 });
 
 // Alerts
@@ -2640,12 +2631,12 @@ document.getElementById('dnToggle').addEventListener('click',()=>{
 
 // Close dropdowns on outside click
 document.addEventListener('click',e=>{
-  if(!e.target.closest('.weather-wrap'))document.getElementById('weatherDrop').classList.remove('open');
+  if(!e.target.closest('.weather-wrap'))document.getElementById('weatherDrop')?.classList.remove('open');
   if(!e.target.closest('.alerts-wrap'))document.getElementById('alertsDrop').classList.remove('open');
 });
 
 // Search
-document.getElementById('searchInput').addEventListener('input',e=>{
+document.getElementById('searchInput')?.addEventListener('input',e=>{
   const q=e.target.value.toLowerCase().trim();
   if(!q){pondGroups.forEach(g=>{g.visible=true});return;}
   pondGroups.forEach(g=>{
@@ -2653,7 +2644,7 @@ document.getElementById('searchInput').addEventListener('input',e=>{
     g.visible=(d.id+d.species).toLowerCase().includes(q);
   });
 });
-document.getElementById('searchInput').addEventListener('keydown',e=>{
+document.getElementById('searchInput')?.addEventListener('keydown',e=>{
   if(e.key==='Enter'){
     const visible=pondGroups.filter(g=>g.visible);
     if(visible.length>0)selectObject(visible[0]);
@@ -2673,7 +2664,8 @@ window.addEventListener('resize',()=>{
 function setWeather(w){
   currentWeather=w;
   const labels={sunny:'☀️ Sunny',rainy:'🌧️ Monsoon',cloudy:'☁️ Overcast',stormy:'⛈️ Stormy'};
-  document.getElementById('weatherBtn').textContent=labels[w];
+  const wb = document.getElementById('weatherBtn');
+  if (wb) wb.textContent=labels[w];
   rain.visible=(w==='rainy'||w==='stormy');
 }
 
@@ -2716,8 +2708,12 @@ if (existingFbConfig) {
   fbConfigInput.value = JSON.stringify(existingFbConfig, null, 2);
 }
 
-firebaseBtn.addEventListener('click', () => {
-  firebaseModal.style.display = 'block';
+firebaseBtn?.addEventListener('click', () => {
+  if (firebaseModal) firebaseModal.style.display = 'block';
+});
+document.getElementById('btnUserOpenFirebase')?.addEventListener('click', () => {
+  if (firebaseModal) firebaseModal.style.display = 'block';
+  document.getElementById('userDrop')?.classList.remove('open');
 });
 closeFbModal.addEventListener('click', () => {
   firebaseModal.style.display = 'none';
@@ -2725,15 +2721,19 @@ closeFbModal.addEventListener('click', () => {
 
 firebaseService.callbacks.onStatusChange = ({ connected, message }) => {
   if (connected) {
-    fbDot.className = 'status-dot active';
-    fbText.textContent = '🔥 Live Firestore';
-    fbStatusMsg.textContent = `Status: ${message} (Realtime Live Sync)`;
-    fbStatusMsg.style.color = 'var(--success)';
+    if (fbDot) fbDot.className = 'status-dot active';
+    if (fbText) fbText.textContent = '🔥 Live Firestore';
+    if (fbStatusMsg) {
+      fbStatusMsg.textContent = `Status: ${message} (Realtime Live Sync)`;
+      fbStatusMsg.style.color = 'var(--success)';
+    }
   } else {
-    fbDot.className = 'status-dot warning';
-    fbText.textContent = '🔥 Firebase';
-    fbStatusMsg.textContent = `Status: ${message}`;
-    fbStatusMsg.style.color = 'var(--text-dim)';
+    if (fbDot) fbDot.className = 'status-dot warning';
+    if (fbText) fbText.textContent = '🔥 Firebase';
+    if (fbStatusMsg) {
+      fbStatusMsg.textContent = `Status: ${message}`;
+      fbStatusMsg.style.color = 'var(--text-dim)';
+    }
   }
 };
 
@@ -2831,7 +2831,7 @@ userAvatar.addEventListener('click', (e) => {
   e.stopPropagation();
   userDrop.classList.toggle('open');
   document.getElementById('alertsDrop').classList.remove('open');
-  document.getElementById('weatherDrop').classList.remove('open');
+  document.getElementById('weatherDrop')?.classList.remove('open');
 });
 
 document.addEventListener('click', (e) => {
@@ -3008,6 +3008,11 @@ function updatePondCounts() {
   if (fTanks) fTanks.textContent = tankCount;
 }
 
+function getTanksForPond(pondId) {
+  if (!pondId) return [];
+  return pondData.filter(t => t.unitType === 'tank' && (t.parentPond === pondId || t.id.startsWith(pondId + '-')));
+}
+
 function setUnitTypeInForm(type) {
   const input = document.getElementById('unitTypeInput');
   if (input) input.value = type;
@@ -3026,19 +3031,32 @@ function setUnitTypeInForm(type) {
   }
 
   const editId = document.getElementById('editPondId').value;
+  const parentPondId = document.getElementById('editParentPondId')?.value;
 
   if (type === 'tank') {
     if (!editId) {
-      const nextTankNum = pondData.filter(p => p.unitType === 'tank').length + 1;
-      document.getElementById('editPondIdInput').value = 'T-' + String(nextTankNum).padStart(2, '0');
-      document.getElementById('editSpecies').value = 'Broodstock Shrimp Tank';
-      if (document.getElementById('editPondW')) document.getElementById('editPondW').value = '12';
-      if (document.getElementById('editPondD')) document.getElementById('editPondD').value = '12';
-      if (document.getElementById('editPondSector')) document.getElementById('editPondSector').value = 'hatchery';
-      if (document.getElementById('editPondX')) document.getElementById('editPondX').value = '-28';
-      if (document.getElementById('editPondZ')) document.getElementById('editPondZ').value = '24';
+      if (parentPondId) {
+        const siblingTanks = getTanksForPond(parentPondId);
+        const nextNum = siblingTanks.length + 1;
+        document.getElementById('editPondIdInput').value = `${parentPondId}-TK${nextNum < 10 ? '0' + nextNum : nextNum}`;
+        const parentObj = pondData.find(p => p.id === parentPondId);
+        if (parentObj) {
+          document.getElementById('editSpecies').value = `${parentObj.species} (Nursery Tank)`;
+          if (document.getElementById('editPondSector')) document.getElementById('editPondSector').value = parentObj.area || 'nursery';
+        }
+      } else {
+        const nextTankNum = pondData.filter(p => p.unitType === 'tank').length + 1;
+        document.getElementById('editPondIdInput').value = 'T-' + String(nextTankNum).padStart(2, '0');
+        document.getElementById('editSpecies').value = 'Broodstock Shrimp Tank';
+        if (document.getElementById('editPondW')) document.getElementById('editPondW').value = '10';
+        if (document.getElementById('editPondD')) document.getElementById('editPondD').value = '10';
+        if (document.getElementById('editPondSector')) document.getElementById('editPondSector').value = 'hatchery';
+        if (document.getElementById('editPondX')) document.getElementById('editPondX').value = '-28';
+        if (document.getElementById('editPondZ')) document.getElementById('editPondZ').value = '24';
+      }
     }
   } else {
+    document.getElementById('editParentPondId').value = '';
     if (!editId) {
       const nextPondNum = pondData.filter(p => p.unitType !== 'tank').length + 1;
       document.getElementById('editPondIdInput').value = 'P-' + String(nextPondNum).padStart(2, '0');
@@ -3080,64 +3098,198 @@ function renderPondMgmtTable() {
       const matchSpecies = (p.species || '').toLowerCase().includes(query);
       const matchArea = (p.area || '').toLowerCase().includes(query);
       const matchType = (p.unitType || 'pond').toLowerCase().includes(query);
-      const matchLoc = `x:${p.x} z:${p.z}`.toLowerCase().includes(query);
-      return matchId || matchSpecies || matchArea || matchType || matchLoc;
+      const matchParent = (p.parentPond || '').toLowerCase().includes(query);
+      return matchId || matchSpecies || matchArea || matchType || matchParent;
     }
     return true;
   });
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="11" style="padding:24px;text-align:center;color:var(--text-dim)">No ponds or tanks found matching current filter.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--text-dim)">No ponds or tanks found matching current filter.</td></tr>`;
     return;
   }
 
   tbody.innerHTML = filtered.map(p => {
-    const isWarning = p.status === 'warning' || p.status === 'critical';
-    const aeratorActive = p.aeratorStatus !== 'off' && p.aeratorStatus !== 'idle';
     const isTank = p.unitType === 'tank';
     const unitBadge = isTank
       ? `<span class="unit-type-badge tank">🧪 Tank</span>`
       : `<span class="unit-type-badge pond">🐟 Pond</span>`;
 
+    const tanks = !isTank ? getTanksForPond(p.id) : [];
+    const tanksCol = !isTank
+      ? (tanks.length > 0 
+          ? `<button class="area-btn manage-tanks-btn" data-pond-id="${p.id}" style="padding:3px 8px;font-size:11px;font-weight:700;border:1px solid #42A5F5;color:#90CAF9;background:rgba(66,165,245,0.12);cursor:pointer" title="Click to view & manage tanks">🧪 ${tanks.length} Tank${tanks.length > 1 ? 's' : ''}</button>`
+          : `<span style="color:var(--text-dim);font-size:11px">0 Tanks</span>`)
+      : (p.parentPond 
+          ? `<span style="color:#90CAF9;font-size:11px">Linked to <b>${p.parentPond}</b></span>`
+          : `<span style="color:var(--text-dim);font-size:11px">Standalone</span>`);
+
+    const actionsCol = !isTank
+      ? `
+        <div style="display:flex;gap:5px;justify-content:center;flex-wrap:wrap">
+          <button class="area-btn add-tank-to-pond-btn" data-pond-id="${p.id}" style="padding:4px 9px;font-size:11px;font-weight:700;background:var(--accent);color:#0a1628" title="Add Circular Tank to ${p.id}">➕ Add Tank</button>
+          <button class="area-btn manage-tanks-btn" data-pond-id="${p.id}" style="padding:4px 8px;font-size:11px;font-weight:600;border-color:#42A5F5;color:#90CAF9" title="Manage Tanks for ${p.id}">🧪 Manage Tanks</button>
+          <button class="area-btn inspect-pond-btn" data-pond-id="${p.id}" title="Focus in 3D" style="padding:4px 7px;font-size:11px">🎯</button>
+          <button class="area-btn edit-pond-btn" data-pond-id="${p.id}" title="Edit Pond" style="padding:4px 7px;font-size:11px">✏️</button>
+          <button class="area-btn delete-pond-btn" data-pond-id="${p.id}" title="Remove Pond" style="padding:4px 7px;font-size:11px;color:var(--danger)">🗑️</button>
+        </div>
+      `
+      : `
+        <div style="display:flex;gap:5px;justify-content:center;flex-wrap:wrap">
+          ${p.parentPond ? `<button class="area-btn manage-tanks-btn" data-pond-id="${p.parentPond}" style="padding:4px 8px;font-size:11px;font-weight:600;border-color:#42A5F5;color:#90CAF9" title="Manage Sibling Tanks">🧪 Manage Tanks</button>` : ''}
+          <button class="area-btn inspect-pond-btn" data-pond-id="${p.id}" title="Focus in 3D" style="padding:4px 7px;font-size:11px">🎯</button>
+          <button class="area-btn edit-pond-btn" data-pond-id="${p.id}" title="Edit Tank" style="padding:4px 7px;font-size:11px">✏️</button>
+          <button class="area-btn delete-pond-btn" data-pond-id="${p.id}" title="Remove Tank" style="padding:4px 7px;font-size:11px;color:var(--danger)">🗑️</button>
+        </div>
+      `;
+
     return `
       <tr style="border-bottom:1px solid rgba(255,255,255,0.05);transition:background .2s" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'">
-        <td style="padding:8px 10px;font-weight:700;color:var(--accent)">
-          ${p.id}
+        <td style="padding:10px 12px;font-weight:700">
+          <a href="javascript:void(0)" class="pond-name-link" data-pond-id="${p.id}" style="color:var(--accent);text-decoration:underline;cursor:pointer;display:inline-flex;align-items:center;gap:6px" title="Click to view tanks and options">
+            <span>${isTank ? '🧪' : '🐟'}</span> ${p.id}
+          </a>
         </td>
-        <td style="padding:8px 10px;white-space:nowrap">
+        <td style="padding:10px 12px;white-space:nowrap">
           ${unitBadge}
         </td>
-        <td style="padding:8px 10px">
-          <div style="text-transform:capitalize;font-weight:600;color:var(--text)">${p.area || 'growout'}</div>
-          <div class="coord-chip">📍 X:${p.x}, Z:${p.z}</div>
+        <td style="padding:10px 12px;font-weight:500;color:#fff">
+          ${p.species}
         </td>
-        <td style="padding:8px 10px;font-weight:500;color:#fff">${p.species}</td>
-        <td style="padding:8px 10px">${p.stock.toLocaleString()}</td>
-        <td style="padding:8px 10px">${p.temp}°C</td>
-        <td style="padding:8px 10px">${p.ph}</td>
-        <td style="padding:8px 10px;font-weight:600;color:${p.dox < 6.0 ? 'var(--warn)' : 'var(--text)'}">${p.dox} mg/L</td>
-        <td style="padding:8px 10px;white-space:nowrap">
-          <div style="font-weight:600;font-size:11px;color:#fff">${p.aeratorCount !== undefined ? p.aeratorCount : (isTank ? 1 : 2)} Aerators</div>
-          <button class="area-btn toggle-aerator-btn ${aeratorActive ? 'active' : ''}" data-pond-id="${p.id}" style="padding:2px 6px;font-size:9px;margin-top:2px" title="Toggle Aerators">
-            ${aeratorActive ? '🌀 Running' : '⏸️ Off'}
-          </button>
+        <td style="padding:10px 12px;white-space:nowrap">
+          ${tanksCol}
         </td>
-        <td style="padding:8px 10px"><span class="badge-tag ${isWarning ? 'warning' : 'active'}">${p.status}</span></td>
-        <td style="padding:8px 10px;text-align:center;white-space:nowrap">
-          <div style="display:flex;gap:4px;justify-content:center">
-            <button class="area-btn inspect-pond-btn" data-pond-id="${p.id}" title="Focus in 3D" style="padding:4px 8px;font-size:11px">🎯 Inspect</button>
-            <button class="area-btn edit-pond-btn" data-pond-id="${p.id}" title="Edit Telemetry & Location" style="padding:4px 8px;font-size:11px">✏️</button>
-            <button class="area-btn delete-pond-btn" data-pond-id="${p.id}" title="Remove Pond/Tank" style="padding:4px 8px;font-size:11px;color:var(--danger)">🗑️</button>
-          </div>
+        <td style="padding:10px 12px;text-align:center;white-space:nowrap">
+          ${actionsCol}
         </td>
       </tr>
     `;
   }).join('');
 }
 
+function openAddTankForPond(pondId) {
+  const p = pondData.find(item => item.id === pondId);
+  const parentId = (p && p.unitType === 'tank' && p.parentPond) ? p.parentPond : pondId;
+  const parentObj = pondData.find(item => item.id === parentId);
+
+  // Ensure pondMgmtModal is visible
+  if (!pondMgmtModal.classList.contains('active')) {
+    openModal(pondMgmtModal);
+  }
+
+  // Close tank management drawer if open
+  const tankDrawer = document.getElementById('tankMgmtDrawer');
+  if (tankDrawer) tankDrawer.style.display = 'none';
+
+  const siblingTanks = getTanksForPond(parentId);
+  const nextNum = siblingTanks.length + 1;
+  const suggestedTankId = `${parentId}-TK${nextNum < 10 ? '0' + nextNum : nextNum}`;
+
+  document.getElementById('editPondId').value = '';
+  document.getElementById('editPondIdInput').value = suggestedTankId;
+  document.getElementById('editPondIdInput').disabled = false;
+  document.getElementById('editParentPondId').value = parentId;
+  document.getElementById('editSpecies').value = parentObj ? `${parentObj.species} (Nursery Tank)` : 'Nursery Post-Larvae';
+
+  if (document.getElementById('editPondSector')) {
+    document.getElementById('editPondSector').value = parentObj ? (parentObj.area || 'nursery') : 'nursery';
+  }
+
+  const pX = parentObj ? parentObj.x : 0;
+  const pZ = parentObj ? parentObj.z : 0;
+  const pW = parentObj ? (parentObj.w || 16) : 16;
+  const offsetX = (pW / 2 + 6) + (siblingTanks.length % 2) * 8;
+  const offsetZ = -6 + Math.floor(siblingTanks.length / 2) * 8;
+
+  if (document.getElementById('editPondX')) document.getElementById('editPondX').value = pX + offsetX;
+  if (document.getElementById('editPondZ')) document.getElementById('editPondZ').value = pZ + offsetZ;
+  if (document.getElementById('editPondW')) document.getElementById('editPondW').value = '10';
+  if (document.getElementById('editPondD')) document.getElementById('editPondD').value = '10';
+
+  setUnitTypeInForm('tank');
+
+  document.getElementById('editPondTitle').innerHTML = `<span>➕ Add Circular Tank to Pond ${parentId}</span>`;
+  const card = document.getElementById('pondEditCard');
+  card.style.display = 'block';
+  card.scrollIntoView({ behavior: 'smooth' });
+}
+
+function openManageTanksForPond(pondId) {
+  const p = pondData.find(item => item.id === pondId);
+  if (!p) return;
+  const parentId = (p.unitType === 'tank' && p.parentPond) ? p.parentPond : pondId;
+  const parentObj = pondData.find(item => item.id === parentId) || p;
+
+  // Ensure pondMgmtModal is visible
+  if (!pondMgmtModal.classList.contains('active')) {
+    openModal(pondMgmtModal);
+  }
+
+  // Hide edit card
+  const editCard = document.getElementById('pondEditCard');
+  if (editCard) editCard.style.display = 'none';
+
+  const tanks = getTanksForPond(parentId);
+  const title = document.getElementById('tankMgmtTitle');
+  if (title) {
+    title.innerHTML = `<span>🧪 Circular Tanks at ${parentId} <span style="font-size:12px;color:var(--text-dim)">(${parentObj.species})</span></span>`;
+  }
+
+  const content = document.getElementById('tankMgmtContent');
+  if (content) {
+    if (tanks.length === 0) {
+      content.innerHTML = `
+        <div style="padding:24px;text-align:center;background:rgba(255,255,255,0.02);border-radius:8px;border:1px dashed rgba(255,255,255,0.15)">
+          <div style="font-size:30px;margin-bottom:6px">🧪</div>
+          <div style="font-weight:700;color:#fff;font-size:14px;margin-bottom:4px">No Circular Tanks at ${parentId} Yet</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:14px">Circular tanks are placed right beside this pond for nursery rearing, biofloc, or sampling.</div>
+          <button type="button" class="area-btn active drawer-add-tank-btn" data-parent-id="${parentId}" style="background:var(--accent);color:#0a1628;font-weight:700;padding:6px 16px;cursor:pointer">
+            ➕ Add Circular Tank to ${parentId}
+          </button>
+        </div>
+      `;
+    } else {
+      content.innerHTML = `
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px">
+          ${tanks.map(t => `
+            <div style="background:rgba(0,0,0,0.35);border:1px solid rgba(66,165,245,0.3);border-radius:8px;padding:12px;display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <div style="font-weight:700;color:#90CAF9;font-size:13px;display:flex;align-items:center;gap:6px">
+                  <span>🧪</span> ${t.id}
+                </div>
+                <div style="font-size:11px;color:#fff;margin-top:2px">${t.species}</div>
+                <div style="font-size:10px;color:var(--text-dim);margin-top:2px">📍 X:${t.x}, Z:${t.z} (Ø ${t.w || 10}m)</div>
+              </div>
+              <div style="display:flex;gap:4px">
+                <button class="area-btn inspect-pond-btn" data-pond-id="${t.id}" title="Focus in 3D" style="padding:4px 7px;font-size:11px">🎯</button>
+                <button class="area-btn edit-pond-btn" data-pond-id="${t.id}" title="Edit Tank" style="padding:4px 7px;font-size:11px">✏️</button>
+                <button class="area-btn delete-pond-btn" data-pond-id="${t.id}" title="Remove Tank" style="padding:4px 7px;font-size:11px;color:var(--danger)">🗑️</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+  }
+
+  const addBtn = document.getElementById('btnDrawerAddTank');
+  if (addBtn) {
+    addBtn.setAttribute('data-parent-id', parentId);
+    addBtn.textContent = `➕ Add Tank to ${parentId}`;
+  }
+
+  const drawer = document.getElementById('tankMgmtDrawer');
+  if (drawer) {
+    drawer.style.display = 'block';
+    drawer.scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
 function openPondMgmtModal() {
   const editCard = document.getElementById('pondEditCard');
   if (editCard) editCard.style.display = 'none';
+  const tankDrawer = document.getElementById('tankMgmtDrawer');
+  if (tankDrawer) tankDrawer.style.display = 'none';
   renderPondMgmtTable();
   openModal(pondMgmtModal);
 }
@@ -3157,6 +3309,7 @@ document.getElementById('pondMgmtFilterBtns')?.addEventListener('click', (e) => 
 // Show Add Pond / Tank Card
 document.getElementById('btnShowAddPondModal')?.addEventListener('click', () => {
   document.getElementById('editPondId').value = '';
+  document.getElementById('editParentPondId').value = '';
   document.getElementById('editPondTitle').innerHTML = '<span>➕ Add New Pond / Tank at Location</span>';
   document.getElementById('editPondIdInput').disabled = false;
   setUnitTypeInForm('pond');
@@ -3174,12 +3327,60 @@ document.getElementById('cancelPondEdit')?.addEventListener('click', () => {
   document.getElementById('pondEditCard').style.display = 'none';
 });
 
-// Table action buttons: Inspect, Edit, Toggle Aerator, Delete
-document.getElementById('pondMgmtTableBody')?.addEventListener('click', async (e) => {
+// Tank Management Drawer controls
+document.getElementById('closeTankMgmt')?.addEventListener('click', () => {
+  document.getElementById('tankMgmtDrawer').style.display = 'none';
+});
+document.getElementById('btnCloseTankMgmt')?.addEventListener('click', () => {
+  document.getElementById('tankMgmtDrawer').style.display = 'none';
+});
+document.getElementById('btnDrawerAddTank')?.addEventListener('click', (e) => {
+  const pId = e.currentTarget.getAttribute('data-parent-id');
+  if (pId) openAddTankForPond(pId);
+});
+document.getElementById('tankMgmtDrawer')?.addEventListener('click', (e) => {
+  const drawerAddBtn = e.target.closest('.drawer-add-tank-btn');
+  if (drawerAddBtn) {
+    const pId = drawerAddBtn.getAttribute('data-parent-id');
+    if (pId) openAddTankForPond(pId);
+  }
+});
+
+// Table & Drawer action buttons delegation
+async function handlePondActionClick(e) {
+  const addTankBtn = e.target.closest('.add-tank-to-pond-btn');
+  const manageTanksBtn = e.target.closest('.manage-tanks-btn');
+  const nameLink = e.target.closest('.pond-name-link');
   const inspectBtn = e.target.closest('.inspect-pond-btn');
   const editBtn = e.target.closest('.edit-pond-btn');
   const deleteBtn = e.target.closest('.delete-pond-btn');
-  const aeratorBtn = e.target.closest('.toggle-aerator-btn');
+
+  if (addTankBtn) {
+    const pId = addTankBtn.getAttribute('data-pond-id');
+    openAddTankForPond(pId);
+    return;
+  }
+
+  if (manageTanksBtn) {
+    const pId = manageTanksBtn.getAttribute('data-pond-id');
+    openManageTanksForPond(pId);
+    return;
+  }
+
+  if (nameLink) {
+    const pId = nameLink.getAttribute('data-pond-id');
+    const p = pondData.find(item => item.id === pId);
+    if (p && p.unitType === 'tank') {
+      const targetTank = pondGroups.find(g => g.userData.id === pId);
+      if (targetTank) {
+        closeAllModals();
+        selectObject(targetTank);
+      }
+    } else {
+      openManageTanksForPond(pId);
+    }
+    return;
+  }
 
   if (inspectBtn) {
     const pId = inspectBtn.getAttribute('data-pond-id');
@@ -3188,41 +3389,64 @@ document.getElementById('pondMgmtTableBody')?.addEventListener('click', async (e
       closeAllModals();
       selectObject(targetPond);
     }
-  } else if (editBtn) {
+    return;
+  }
+
+  if (editBtn) {
     const pId = editBtn.getAttribute('data-pond-id');
     const p = pondData.find(item => item.id === pId);
     if (p) {
       document.getElementById('editPondId').value = p.id;
       document.getElementById('editPondIdInput').value = p.id;
-      document.getElementById('editPondIdInput').disabled = true; // Keep ID stable on edit
+      document.getElementById('editPondIdInput').disabled = true;
+      document.getElementById('editParentPondId').value = p.parentPond || '';
       document.getElementById('editPondTitle').innerHTML = `<span>✏️ Edit ${p.id} (${p.unitType === 'tank' ? 'Circular Tank' : 'Aquaculture Pond'})</span>`;
       
       setUnitTypeInForm(p.unitType || 'pond');
       if (document.getElementById('editPondSector')) document.getElementById('editPondSector').value = p.area || 'growout';
       if (document.getElementById('editPondX')) document.getElementById('editPondX').value = p.x;
       if (document.getElementById('editPondZ')) document.getElementById('editPondZ').value = p.z;
-      if (document.getElementById('editPondW')) document.getElementById('editPondW').value = p.w || (p.unitType === 'tank' ? 12 : 16);
-      if (document.getElementById('editPondD')) document.getElementById('editPondD').value = p.d || (p.unitType === 'tank' ? 12 : 13);
+      if (document.getElementById('editPondW')) document.getElementById('editPondW').value = p.w || (p.unitType === 'tank' ? 10 : 16);
+      if (document.getElementById('editPondD')) document.getElementById('editPondD').value = p.d || (p.unitType === 'tank' ? 10 : 13);
       document.getElementById('editSpecies').value = p.species;
-      if (document.getElementById('editStock')) {
-        document.getElementById('editStock').value = p.stock;
-      }
-      if (document.getElementById('editAeratorCount')) {
-        document.getElementById('editAeratorCount').value = typeof p.aeratorCount === 'number' ? p.aeratorCount : (p.unitType === 'tank' ? 1 : 2);
-      }
-      document.getElementById('editTemp').value = p.temp;
-      document.getElementById('editPh').value = p.ph;
-      document.getElementById('editDox').value = p.dox;
+      if (document.getElementById('editTemp')) document.getElementById('editTemp').value = p.temp;
+      if (document.getElementById('editPh')) document.getElementById('editPh').value = p.ph;
+      if (document.getElementById('editDox')) document.getElementById('editDox').value = p.dox;
 
       const card = document.getElementById('pondEditCard');
       card.style.display = 'block';
       card.scrollIntoView({ behavior: 'smooth' });
     }
-  } else if (deleteBtn) {
+    return;
+  }
+
+  if (deleteBtn) {
     const pId = deleteBtn.getAttribute('data-pond-id');
     const p = pondData.find(item => item.id === pId);
-    if (p && confirm(`Are you sure you want to permanently delete ${p.id} (${p.species}) from the database and 3D farm?`)) {
-      // 1. Delete from Cloud Firestore database
+    if (!p) return;
+
+    const childTanks = pondData.filter(t => t.parentPond === pId);
+    const confirmMsg = childTanks.length > 0
+      ? `Are you sure you want to permanently delete pond ${p.id} and its ${childTanks.length} circular tank(s) from the database and 3D farm?`
+      : `Are you sure you want to permanently delete ${p.id} (${p.species}) from the database and 3D farm?`;
+
+    if (confirm(confirmMsg)) {
+      const parentPondId = p.parentPond;
+
+      // 1. Delete child tanks from database and 3D scene if any
+      for (const ct of childTanks) {
+        if (firebaseService.isConnected) {
+          try {
+            await firebaseService.deletePond(ct.id);
+          } catch (err) {
+            console.warn("Child tank Firestore delete error:", err);
+          }
+        }
+        removePondOrTank3D(ct.id);
+      }
+      pondData = pondData.filter(item => item.parentPond !== pId);
+
+      // 2. Delete target unit from database
       if (firebaseService.isConnected) {
         try {
           await firebaseService.deletePond(pId);
@@ -3231,34 +3455,30 @@ document.getElementById('pondMgmtTableBody')?.addEventListener('click', async (e
         }
       }
 
-      // 2. Remove from local pondData
+      // 3. Remove target unit from local pondData and 3D scene
       pondData = pondData.filter(item => item.id !== pId);
-
-      // 3. Remove from 3D scene
       removePondOrTank3D(pId);
 
-      // 4. Update localStorage
+      // 4. Save and re-render
       savePondData();
+      renderPondMgmtTable();
+      renderTable(currentActiveTab);
 
-      // 5. Re-render UI
-      renderPondMgmtTable();
-      renderTable(currentActiveTab);
-    }
-  } else if (aeratorBtn) {
-    const pId = aeratorBtn.getAttribute('data-pond-id');
-    const p = pondData.find(item => item.id === pId);
-    if (p) {
-      const newState = (p.aeratorStatus === 'off' || p.aeratorStatus === 'idle') ? 'running' : 'idle';
-      p.aeratorStatus = newState;
-      savePondData();
-      if (firebaseService.isConnected) {
-        await firebaseService.updatePondTelemetry(pId, { aeratorStatus: newState });
+      // 5. Update Tank Drawer if open
+      if (parentPondId) {
+        openManageTanksForPond(parentPondId);
+      } else {
+        const drawer = document.getElementById('tankMgmtDrawer');
+        if (drawer && drawer.style.display !== 'none') {
+          drawer.style.display = 'none';
+        }
       }
-      renderPondMgmtTable();
-      renderTable(currentActiveTab);
     }
   }
-});
+}
+
+document.getElementById('pondMgmtTableBody')?.addEventListener('click', handlePondActionClick);
+document.getElementById('tankMgmtContent')?.addEventListener('click', handlePondActionClick);
 
 // Save Pond / Tank Form Submit (Add or Edit)
 document.getElementById('pondEditForm')?.addEventListener('submit', async (e) => {
@@ -3267,20 +3487,30 @@ document.getElementById('pondEditForm')?.addEventListener('submit', async (e) =>
   const formId = document.getElementById('editPondIdInput').value.trim().toUpperCase();
   const pId = existingId || formId;
   const unitType = document.getElementById('unitTypeInput').value || 'pond';
-  const area = (document.getElementById('editPondSector')?.value) || (unitType === 'tank' ? 'hatchery' : 'growout');
+  const parentPond = document.getElementById('editParentPondId')?.value || '';
+  let area = (document.getElementById('editPondSector')?.value) || (unitType === 'tank' ? 'hatchery' : 'growout');
   let x = parseFloat(document.getElementById('editPondX')?.value) || 0;
   let z = parseFloat(document.getElementById('editPondZ')?.value) || 0;
-  const w = parseFloat(document.getElementById('editPondW')?.value) || (unitType === 'tank' ? 12 : 16);
+  const w = parseFloat(document.getElementById('editPondW')?.value) || (unitType === 'tank' ? 10 : 16);
   const d = unitType === 'tank' ? w : (parseFloat(document.getElementById('editPondD')?.value) || 13);
 
   if (!existingId) {
-    const sameTypeCount = pondData.filter(item => item.unitType === unitType).length;
-    if (unitType === 'tank') {
-      x = -28 + (sameTypeCount % 3) * 14;
-      z = 24 + Math.floor(sameTypeCount / 3) * 14;
+    if (unitType === 'tank' && parentPond) {
+      const parentObj = pondData.find(item => item.id === parentPond);
+      const siblingTanks = pondData.filter(item => item.unitType === 'tank' && (item.parentPond === parentPond || item.id.startsWith(parentPond + '-')));
+      const pW = parentObj ? (parentObj.w || 16) : 16;
+      x = (parentObj ? parentObj.x : 0) + (pW / 2 + 6) + (siblingTanks.length % 2) * 8;
+      z = (parentObj ? parentObj.z : 0) - 6 + Math.floor(siblingTanks.length / 2) * 8;
+      area = parentObj ? (parentObj.area || 'nursery') : 'nursery';
     } else {
-      x = -38 + (sameTypeCount % 4) * 20;
-      z = -34 + Math.floor(sameTypeCount / 4) * 18;
+      const sameTypeCount = pondData.filter(item => item.unitType === unitType).length;
+      if (unitType === 'tank') {
+        x = -28 + (sameTypeCount % 3) * 14;
+        z = 24 + Math.floor(sameTypeCount / 3) * 14;
+      } else {
+        x = -38 + (sameTypeCount % 4) * 20;
+        z = -34 + Math.floor(sameTypeCount / 4) * 18;
+      }
     }
   }
   const species = document.getElementById('editSpecies').value.trim();
@@ -3289,9 +3519,9 @@ document.getElementById('pondEditForm')?.addEventListener('submit', async (e) =>
   const aeratorCount = existingPond && typeof existingPond.aeratorCount === 'number'
     ? existingPond.aeratorCount
     : (unitType === 'tank' ? 1 : 2);
-  const temp = parseFloat(document.getElementById('editTemp').value) || 28.5;
-  const ph = parseFloat(document.getElementById('editPh').value) || 7.5;
-  const dox = parseFloat(document.getElementById('editDox').value) || 6.5;
+  const temp = parseFloat(document.getElementById('editTemp')?.value) || 28.5;
+  const ph = parseFloat(document.getElementById('editPh')?.value) || 7.5;
+  const dox = parseFloat(document.getElementById('editDox')?.value) || 6.5;
   const isWarningParam = dox < 6.0 || temp > 31.0 || temp < 24.0 || ph < 6.8 || ph > 8.5;
   const status = isWarningParam ? 'warning' : 'active';
   const aeratorStatus = aeratorCount > 0 ? 'running' : 'off';
@@ -3301,7 +3531,7 @@ document.getElementById('pondEditForm')?.addEventListener('submit', async (e) =>
     const p = pondData.find(item => item.id === existingId);
     if (p) {
       const locOrDimChanged = p.x !== x || p.z !== z || p.w !== w || p.d !== d || p.unitType !== unitType || p.aeratorCount !== aeratorCount;
-      Object.assign(p, { unitType, area, x, z, w, d, species, stock, aeratorCount, temp, ph, dox, status, aeratorStatus });
+      Object.assign(p, { unitType, parentPond, area, x, z, w, d, species, stock, aeratorCount, temp, ph, dox, status, aeratorStatus });
 
       if (locOrDimChanged) {
         removePondOrTank3D(existingId);
@@ -3322,6 +3552,7 @@ document.getElementById('pondEditForm')?.addEventListener('submit', async (e) =>
     const newUnit = {
       id: pId,
       unitType,
+      parentPond: unitType === 'tank' ? parentPond : '',
       area,
       x,
       z,
@@ -3345,7 +3576,12 @@ document.getElementById('pondEditForm')?.addEventListener('submit', async (e) =>
 
   if (firebaseService.isConnected) {
     try {
-      await firebaseService.updatePondTelemetry(pId, { unitType, area, x, z, w, d, species, stock, temp, ph, dox, status, aeratorStatus });
+      if (typeof firebaseService.savePond === 'function') {
+        const toSave = pondData.find(item => item.id === pId);
+        if (toSave) await firebaseService.savePond(toSave);
+      } else {
+        await firebaseService.updatePondTelemetry(pId, { unitType, parentPond, area, x, z, w, d, species, stock, temp, ph, dox, status, aeratorStatus });
+      }
     } catch (err) {
       console.warn("Firestore update error:", err);
     }
@@ -3354,6 +3590,10 @@ document.getElementById('pondEditForm')?.addEventListener('submit', async (e) =>
   renderPondMgmtTable();
   renderTable(currentActiveTab);
   document.getElementById('pondEditCard').style.display = 'none';
+
+  if (parentPond) {
+    openManageTanksForPond(parentPond);
+  }
 
   // Smoothly glide camera to the pond/tank in 3D
   const targetGroup = pondGroups.find(g => g.userData.id === pId);

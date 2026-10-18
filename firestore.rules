@@ -109,17 +109,20 @@ service cloud.firestore {
              hasOnlyAllowedFields([
                'id', 'name', 'species', 'stock', 'temp', 'ph',
                'dox', 'nh3', 'status', 'aeratorStatus', 'lastUpdated',
-               'area', 'x', 'z', 'w', 'd'
+               'area', 'x', 'z', 'w', 'd', 'unitType', 'parentPond', 'aeratorCount'
              ]) &&
              // Identifiers and strings
              data.id is string &&
              data.id == pondId &&
              data.id.size() > 0 &&
-             data.id.size() <= 20 &&
+             data.id.size() <= 40 &&
              data.species is string &&
              data.species.size() > 0 &&
              data.species.size() <= 60 &&
              isValidOptionalString(data, 'name', 1, 60) &&
+             isValidOptionalString(data, 'unitType', 1, 20) &&
+             isValidOptionalString(data, 'parentPond', 0, 40) &&
+             isValidOptionalNumber(data, 'aeratorCount') &&
              // Stock count must be a non-negative integer
              data.stock is int &&
              data.stock >= 0 &&
